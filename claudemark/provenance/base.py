@@ -8,13 +8,19 @@ from pathlib import Path
 from typing import Any
 
 
-def validate_safe_path(p: Path | str) -> Path:
+def validate_safe_path(p: Path | str, base_dir: Path | str | None = None) -> Path:
     """Validate and sanitize file path to prevent arbitrary path traversal and injection."""
-    raw = str(p)
+    path_obj = Path(p).resolve()
+    raw = str(path_obj)
     if "\x00" in raw:
         raise ValueError("Illegal null byte in file path")
-    normalized = os.path.normpath(raw)
-    return Path(normalized).resolve()
+    if base_dir is not None:
+        base_path = Path(base_dir).resolve()
+        try:
+            path_obj.relative_to(base_path)
+        except ValueError:
+            raise ValueError(f"Path traversal detected: {path_obj} is outside {base_path}")
+    return path_obj
 
 
 @dataclass

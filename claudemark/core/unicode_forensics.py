@@ -258,3 +258,50 @@ def analyze_unicode_forensics(text: str) -> UnicodeForensicReport:
         findings=findings,
         summary_text=summary_text,
     )
+
+
+def visualize_unicode_markers(text: str) -> str:
+    """Make invisible Unicode markers, directional overrides, and unusual whitespace visible."""
+    if not text:
+        return ""
+
+    out = []
+    for ch in text:
+        cp = ord(ch)
+        if cp == 0x200B:
+            out.append("<ZWSP>")
+        elif cp == 0x200C:
+            out.append("<ZWNJ>")
+        elif cp == 0x200D:
+            out.append("<ZWJ>")
+        elif cp == 0x2060:
+            out.append("<WJ>")
+        elif cp == 0xFEFF:
+            out.append("<BOM>")
+        elif cp == 0x00A0:
+            out.append("<NBSP>")
+        elif cp == 0x202F:
+            out.append("<NNBSP>")
+        elif cp == 0x00AD:
+            out.append("<SHY>")
+        elif cp == 0x180E:
+            out.append("<MVS>")
+        elif 0x2000 <= cp <= 0x200A:
+            out.append(f"<SPACE-U+{cp:04X}>")
+        elif cp in BIDI_CONTROLS:
+            short_bidi = {
+                0x200E: "LRM", 0x200F: "RLM", 0x202A: "LRE", 0x202B: "RLE",
+                0x202C: "PDF", 0x202D: "LRO", 0x202E: "RLO", 0x2066: "LRI",
+                0x2067: "RLI", 0x2068: "FSI", 0x2069: "PDI",
+            }.get(cp, f"BIDI-U+{cp:04X}")
+            out.append(f"<{short_bidi}>")
+        elif 0xFE00 <= cp <= 0xFE0F or 0xE0100 <= cp <= 0xE01EF:
+            out.append(f"<VS-{cp:X}>")
+        elif 0xE0000 <= cp <= 0xE007F:
+            out.append(f"<TAG-{cp:X}>")
+        elif unicodedata.category(ch).startswith("C") and ch not in ("\n", "\r", "\t"):
+            out.append(f"<CTRL-U+{cp:04X}>")
+        else:
+            out.append(ch)
+
+    return "".join(out)

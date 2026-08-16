@@ -94,11 +94,16 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
             return
 
         if path == "/capabilities":
+            from .agent.tools import AGENT_TOOLS_MANIFEST
+            from .pixel.registry import pixel_registry
+
             caps = {
                 "version": __version__,
                 "detectors": detector_registry.list_detectors(),
+                "pixel_backends": pixel_registry.list_details(),
                 "supported_document_formats": ["pdf", "docx", "odt", "html", "md", "txt"],
-                "supported_image_formats": ["png", "jpeg", "jpg", "webp", "svg"],
+                "supported_image_formats": ["png", "jpeg", "jpg", "webp", "svg", "avif", "heic"],
+                "agent_tools": [t["name"] for t in AGENT_TOOLS_MANIFEST],
                 "system_tools": {
                     "c2patool": shutil.which("c2patool") is not None,
                     "exiftool": shutil.which("exiftool") is not None,
@@ -114,16 +119,23 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
                 "info": {
                     "title": "ClaudeMark service",
                     "version": __version__,
-                    "description": "Multi-AI watermark research and provenance forensics service.",
+                    "description": "Multi-AI watermark research, provenance forensics, and security platform.",
                 },
                 "paths": {
                     "/health": {"get": {"summary": "Health check"}},
-                    "/capabilities": {"get": {"summary": "List capabilities"}},
+                    "/capabilities": {"get": {"summary": "List capabilities and plugins"}},
                     "/inspect": {"post": {"summary": "Inspect file (base64 envelope)"}},
                     "/clean": {"post": {"summary": "Clean file (base64 envelope)"}},
-                    "/api/analyze": {"post": {"summary": "Analyze text"}},
-                    "/api/normalize": {"post": {"summary": "Normalize text"}},
-                    "/api/diff": {"post": {"summary": "Diff texts"}},
+                    "/api/analyze": {"post": {"summary": "Analyze text for watermarks"}},
+                    "/api/normalize": {"post": {"summary": "Normalize text and strip invisible characters"}},
+                    "/api/diff": {"post": {"summary": "Forensic diff between texts"}},
+                    "/api/unicode/analyze": {"post": {"summary": "Deep Unicode anomaly inspection"}},
+                    "/api/unicode/visualize": {"post": {"summary": "Make invisible characters visible"}},
+                    "/api/rewrite": {"post": {"summary": "Best-effort statistical watermark disruption"}},
+                    "/api/evaluate": {"post": {"summary": "Before/after watermark evaluation"}},
+                    "/api/security/scan": {"post": {"summary": "Defensive security scan for bombs/macros"}},
+                    "/api/agent/tools": {"get": {"summary": "List AI Agent tool declarations"}},
+                    "/api/agent/exec": {"post": {"summary": "Execute AI Agent tool locally"}},
                 },
             })
             return
@@ -168,6 +180,53 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
             })
             return
 
+        if path == "/api/unicode/analyze":
+            from .core.unicode_forensics import analyze_unicode_forensics
+            text = req_data.get("text", "")
+            rep = analyze_unicode_forensics(text)
+            self._send_json(200, rep.to_dict())
+            return
+
+        if path == "/api/unicode/visualize":
+            from .core.unicode_forensics import visualize_unicode_markers
+            text = req_data.get("text", "")
+            self._send_json(200, {"visualized": visualize_unicode_markers(text)})
+            return
+
+        if path == "/api/rewrite":
+            from .rewrite.paraphrase import disrupt_watermark
+            text = req_data.get("text", "")
+            strat = req_data.get("strategy", "synonym_cadence")
+            alg = req_data.get("algorithm", "claude")
+            res = disrupt_watermark(text, strategy=strat, detector_name=alg)
+            self._send_json(200, res.to_dict())
+            return
+
+        if path == "/api/evaluate":
+            from .rewrite.evaluation import evaluate_rewrite
+            orig = req_data.get("original", "")
+            proc = req_data.get("processed", "")
+            alg = req_data.get("algorithm", "claude")
+            ev = evaluate_rewrite(orig, proc, detector_name=alg)
+            self._send_json(200, ev.to_dict())
+            return
+
+        if path == "/api/agent/tools":
+            from .agent.tools import AGENT_TOOLS_MANIFEST
+            self._send_json(200, {"tools": AGENT_TOOLS_MANIFEST})
+            return
+
+        if path == "/api/agent/exec":
+            from .agent.tools import execute_agent_tool
+            tool_name = req_data.get("tool_name", "")
+            args_obj = req_data.get("arguments", {})
+            try:
+                result = execute_agent_tool(tool_name, args_obj)
+                self._send_json(200, {"ok": True, "result": result})
+            except Exception as ex:
+                self._send_json(400, {"ok": False, "error": str(ex)})
+            return
+
         if path == "/api/normalize":
             text = req_data.get("text", "")
             res = normalize_text(text)
@@ -197,7 +256,6 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
                 return
 
             with tempfile.TemporaryDirectory() as td:
-                # Use fixed filename with validated extension inside temp sandbox
                 tp = Path(td) / f"upload_payload{safe_ext}"
                 tp.write_bytes(raw_bytes)
                 rep = inspect_single_file(tp)
@@ -216,7 +274,6 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
                 return
 
             with tempfile.TemporaryDirectory() as td:
-                # Use fixed filenames with validated extensions inside temp sandbox
                 in_p = Path(td) / f"input_payload{safe_ext}"
                 out_p = Path(td) / f"cleaned_payload{safe_ext}"
                 in_p.write_bytes(raw_bytes)
