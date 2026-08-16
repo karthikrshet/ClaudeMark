@@ -222,7 +222,11 @@ def cmd_diff(args: argparse.Namespace) -> int:
         new_score=proc_score,
     )
 
-    if args.json:
+    if getattr(args, "html", False):
+        from .core.diff import render_html_diff
+        html_rep = render_html_diff(orig_text, proc_text, orig_name, proc_name, diff)
+        _write_output(html_rep, args.output)
+    elif args.json:
         payload = {
             "tool": "ClaudeMark",
             "command": "diff",
@@ -500,6 +504,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_diff.add_argument("file1", help="Original text file path")
     p_diff.add_argument("file2", help="Processed text file path")
     p_diff.add_argument("--json", action="store_true", help="Output JSON diff")
+    p_diff.add_argument("--html", action="store_true", help="Generate side-by-side interactive HTML comparison")
     p_diff.add_argument("--algorithm", "-a", default="claude", help="Algorithm for score delta")
     p_diff.add_argument("--output", "-o", default=None, help="Save diff output to file")
     p_diff.set_defaults(func=cmd_diff)
@@ -582,11 +587,27 @@ def build_parser() -> argparse.ArgumentParser:
     p_audit.add_argument("--json", action="store_true", help="Output JSON audit report")
     p_audit.set_defaults(func=cmd_audit)
 
+    # schema
+    p_sch = subparsers.add_parser("schema", help="Export JSON Schemas for tool dispatch and API contracts")
+    p_sch.add_argument("--json", action="store_true", default=True, help="Output formatted JSON")
+    p_sch.set_defaults(func=cmd_schema)
+
     # version
     p_ver = subparsers.add_parser("version", help="Show ClaudeMark version and build info")
     p_ver.set_defaults(func=cmd_version)
 
     return parser
+
+def cmd_schema(args: argparse.Namespace) -> int:
+    from .agent.tools import AGENT_TOOLS_MANIFEST
+    schema_manifest = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "ClaudeMarkForensicsSchema",
+        "version": __version__,
+        "tools": AGENT_TOOLS_MANIFEST,
+    }
+    print(json.dumps(schema_manifest, indent=2))
+    return 0
 
 def cmd_audit(args: argparse.Namespace) -> int:
     from .provenance.audit import audit_directory

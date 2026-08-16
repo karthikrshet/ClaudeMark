@@ -9,10 +9,12 @@ from typing import Any
 from .base import BatchProcessSummary, FileCleaningReport, ProvenanceInspectionReport
 from .documents import clean_document, inspect_document
 from .images import clean_image_file, inspect_image_file
+from .multimedia import clean_multimedia_file, inspect_multimedia_file
 
-SUPPORTED_IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".svg"}
+SUPPORTED_IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".svg", ".avif", ".heic", ".heif"}
 SUPPORTED_DOC_EXTS = {".pdf", ".docx", ".odt", ".html", ".htm", ".md", ".txt", ".text"}
-ALL_SUPPORTED_EXTS = SUPPORTED_IMAGE_EXTS | SUPPORTED_DOC_EXTS
+SUPPORTED_MEDIA_EXTS = {".mp4", ".mov", ".m4a", ".mp3"}
+ALL_SUPPORTED_EXTS = SUPPORTED_IMAGE_EXTS | SUPPORTED_DOC_EXTS | SUPPORTED_MEDIA_EXTS
 
 
 def inspect_single_file(file_path: Path) -> ProvenanceInspectionReport:
@@ -20,6 +22,8 @@ def inspect_single_file(file_path: Path) -> ProvenanceInspectionReport:
     suffix = file_path.suffix.lower()
     if suffix in SUPPORTED_IMAGE_EXTS:
         return inspect_image_file(file_path)
+    elif suffix in SUPPORTED_MEDIA_EXTS:
+        return inspect_multimedia_file(file_path)
     elif suffix in SUPPORTED_DOC_EXTS:
         return inspect_document(file_path)
     else:
@@ -42,6 +46,8 @@ def clean_single_file(
             strip_all=strip_all_metadata,
             remove_pixel=remove_pixel,
         )
+    elif suffix in SUPPORTED_MEDIA_EXTS:
+        return clean_multimedia_file(input_path, output_path)
     else:
         return clean_document(input_path, output_path)
 
