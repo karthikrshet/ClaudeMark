@@ -58,6 +58,20 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
 
     server_version = f"ClaudeMark/{__version__}"
 
+    def _check_auth(self, path: str) -> bool:
+        """Verify API key authentication if CLAUDEMARK_SERVER_API_KEY is configured."""
+        required_key = os.environ.get("CLAUDEMARK_SERVER_API_KEY")
+        if not required_key:
+            return True
+        # Allow static assets and health check without token
+        if path in ("/", "/health", "/favicon.ico") or path.startswith("/static/"):
+            return True
+        auth_header = self.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:].strip()
+            return token == required_key
+        return False
+
     def _send_json(self, status: int, data: Any) -> None:
         payload = json.dumps(data, indent=2).encode("utf-8")
         self.send_response(status)
@@ -88,6 +102,10 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
         path = parsed.path.rstrip("/")
         if not path:
             path = "/"
+
+        if not self._check_auth(path):
+            self._send_json(401, {"error": "Unauthorized: Invalid or missing API key"})
+            return
 
         if path == "/health":
             self._send_json(200, {"ok": True, "version": __version__, "service": "ClaudeMark"})
@@ -152,6 +170,10 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
         path = parsed.path.rstrip("/")
+
+        if not self._check_auth(path):
+            self._send_json(401, {"error": "Unauthorized: Invalid or missing API key"})
+            return
 
         length = int(self.headers.get("Content-Length", 0))
         if length > MAX_INPUT_BYTES:

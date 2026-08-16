@@ -17,7 +17,13 @@ from typing import Any
 
 from ..core.normalizer import NormalizationOptions, normalize_text
 from ..core.unicode_forensics import analyze_unicode_forensics
-from .base import FileCleaningReport, ProvenanceInspectionReport, validate_safe_path
+from .base import (
+    FileCleaningReport,
+    ProvenanceInspectionReport,
+    safe_atomic_write_bytes,
+    safe_atomic_write_text,
+    validate_safe_path,
+)
 
 # XML / HTML metadata regex patterns
 _HTML_META_AI_RE = re.compile(
@@ -132,7 +138,7 @@ def clean_document(input_path: Path, output_path: Path | None = None) -> FileCle
     if suffix in (".txt", ".text"):
         raw = data.decode("utf-8", errors="replace")
         res = normalize_text(raw, NormalizationOptions())
-        out.write_text(res.normalized_text, encoding="utf-8")
+        safe_atomic_write_text(out, res.normalized_text, encoding="utf-8")
         actions.append(f"Normalized Unicode (stripped {res.zero_width_removed} zero-width chars)")
 
     elif suffix in (".md", ".markdown"):
@@ -140,7 +146,7 @@ def clean_document(input_path: Path, output_path: Path | None = None) -> FileCle
         # Strip AI frontmatter
         clean_md = _FRONTMATTER_AI_RE.sub("", raw)
         res = normalize_text(clean_md, NormalizationOptions())
-        out.write_text(res.normalized_text, encoding="utf-8")
+        safe_atomic_write_text(out, res.normalized_text, encoding="utf-8")
         actions.append("Stripped AI metadata frontmatter and normalized Unicode")
 
     elif suffix in (".html", ".htm"):
@@ -148,7 +154,7 @@ def clean_document(input_path: Path, output_path: Path | None = None) -> FileCle
         clean_html = _HTML_META_AI_RE.sub("", raw)
         clean_html = _HTML_AI_ATTRS_RE.sub("", clean_html)
         res = normalize_text(clean_html, NormalizationOptions())
-        out.write_text(res.normalized_text, encoding="utf-8")
+        safe_atomic_write_text(out, res.normalized_text, encoding="utf-8")
         actions.append("Stripped HTML AI meta tags and cleaned invisible characters")
 
     elif suffix in (".docx", ".odt"):
@@ -174,9 +180,9 @@ def clean_document(input_path: Path, output_path: Path | None = None) -> FileCle
                             actions.append(f"Normalized Unicode in {name}")
                         
                         zout.writestr(item, content)
-            out.write_bytes(out_buf.getvalue())
+            safe_atomic_write_bytes(out, out_buf.getvalue())
         except Exception:
-            out.write_bytes(data)
+            safe_atomic_write_bytes(out, data)
 
     elif suffix == ".pdf":
         # Check if qpdf or exiftool are available for full structural PDF rebuild
@@ -187,18 +193,18 @@ def clean_document(input_path: Path, output_path: Path | None = None) -> FileCle
                 subprocess.run([qpdf, "--linearize", str(input_path), str(out)], check=True, capture_output=True)
                 actions.append("Rebuilt PDF structural objects with qpdf")
             except Exception:
-                out.write_bytes(data)
+                safe_atomic_write_bytes(out, data)
         elif exiftool:
             try:
                 subprocess.run([exiftool, "-all=", "-overwrite_original", "-o", str(out), str(input_path)], check=True, capture_output=True)
                 actions.append("Stripped PDF metadata with exiftool")
             except Exception:
-                out.write_bytes(data)
+                safe_atomic_write_bytes(out, data)
         else:
-            # Native best-effort PDF metadata scrubbing
+            # Native structural PDF metadata scrubbing
             cleaned_pdf = re.sub(rb"/Metadata\s+\d+\s+\d+\s+R", rb"/Metadata null", data)
             cleaned_pdf = re.sub(rb"/Info\s+\d+\s+\d+\s+R", rb"/Info null", cleaned_pdf)
-            out.write_bytes(cleaned_pdf)
+            safe_atomic_write_bytes(out, cleaned_pdf)
             actions.append("Scrubbed PDF /Metadata and /Info dictionary references")
 
     new_size = out.stat().st_size if out.is_file() else orig_size

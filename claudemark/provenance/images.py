@@ -13,7 +13,13 @@ import zlib
 from pathlib import Path
 from typing import Any
 
-from .base import FileCleaningReport, ProvenanceInspectionReport, validate_safe_path
+from .base import (
+    FileCleaningReport,
+    ProvenanceInspectionReport,
+    safe_atomic_write_bytes,
+    safe_atomic_write_text,
+    validate_safe_path,
+)
 from .c2pa import inspect_c2pa_bytes
 from .exif_xmp import inspect_exif_xmp_bytes
 
@@ -98,9 +104,9 @@ def clean_image_file(
                     actions.append(f"Stripped PNG chunk: {chunk_type.decode('latin1')}")
                     continue
                 out_buf.extend(chunk_data)
-            out.write_bytes(bytes(out_buf))
+            safe_atomic_write_bytes(out, bytes(out_buf))
         else:
-            out.write_bytes(data)
+            safe_atomic_write_bytes(out, data)
 
     elif suffix in (".jpg", ".jpeg"):
         # Process JPEG segment stream
@@ -126,9 +132,9 @@ def clean_image_file(
                     continue
                 out_buf.extend(data[pos:pos+2+seg_len])
                 pos += 2 + seg_len
-            out.write_bytes(bytes(out_buf))
+            safe_atomic_write_bytes(out, bytes(out_buf))
         else:
-            out.write_bytes(data)
+            safe_atomic_write_bytes(out, data)
 
     elif suffix == ".webp":
         # Process WebP RIFF chunks
@@ -152,19 +158,19 @@ def clean_image_file(
 
             payload = b"".join(chunks)
             header = b"RIFF" + struct.pack("<I", 4 + len(payload)) + b"WEBP"
-            out.write_bytes(header + payload)
+            safe_atomic_write_bytes(out, header + payload)
         else:
-            out.write_bytes(data)
+            safe_atomic_write_bytes(out, data)
 
     elif suffix == ".svg":
         raw_svg = data.decode("utf-8", errors="replace")
         clean_svg = _SVG_METADATA_RE.sub("", raw_svg)
         clean_svg = _SVG_COMMENTS_RE.sub("", clean_svg)
-        out.write_text(clean_svg, encoding="utf-8")
+        safe_atomic_write_text(out, clean_svg, encoding="utf-8")
         actions.append("Stripped SVG <metadata> and XML comments")
 
     else:
-        out.write_bytes(data)
+        safe_atomic_write_bytes(out, data)
 
     new_size = out.stat().st_size if out.is_file() else orig_size
 
