@@ -96,6 +96,17 @@ AGENT_TOOLS_MANIFEST: list[dict[str, Any]] = [
         },
     },
     {
+        "name": "audit_directory",
+        "description": "Recursively audit directory tree for watermarks, steganography, C2PA, and security risks.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "default": ".", "description": "Target directory path"},
+                "max_files": {"type": "integer", "default": 1000, "description": "Max files to audit"},
+            },
+        },
+    },
+    {
         "name": "get_capabilities",
         "description": "List all active detectors, supported document/image formats, and system tools.",
         "parameters": {"type": "object", "properties": {}},
@@ -144,6 +155,13 @@ def execute_agent_tool(tool_name: str, arguments: dict[str, Any]) -> dict[str, A
     elif tool_name == "scan_security":
         f_path = validate_safe_path(arguments.get("file_path", ""))
         rep = scan_file_security(f_path)
+        return rep.to_dict()
+
+    elif tool_name == "audit_directory":
+        from ..provenance.audit import audit_directory
+        target = validate_safe_path(arguments.get("path", "."))
+        max_f = int(arguments.get("max_files", 1000))
+        rep = audit_directory(target, max_files=max_f)
         return rep.to_dict()
 
     elif tool_name == "get_capabilities":

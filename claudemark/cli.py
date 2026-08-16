@@ -466,7 +466,7 @@ def build_parser() -> argparse.ArgumentParser:
     # serve
     p_srv = subparsers.add_parser("serve", help="Start ClaudeMark Web UI and REST API server")
     p_srv.add_argument("--host", default="127.0.0.1", help="Host interface to bind")
-    p_srv.add_argument("--port", type=int, default=8765, help="Port to listen on")
+    p_srv.add_argument("--port", type=int, default=8950, help="Port to listen on")
     p_srv.set_defaults(func=cmd_serve)
 
     # inspect

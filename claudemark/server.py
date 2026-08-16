@@ -57,6 +57,15 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
     """HTTP request handler for ClaudeMark."""
 
     server_version = f"ClaudeMark/{__version__}"
+    timeout = 15
+
+    def log_message(self, format: str, *args: Any) -> None:
+        """Safely log messages without crashing on closed/invalid stderr handles."""
+        try:
+            sys.stderr.write("%s - - [%s] %s\n" % (self.address_string(), self.log_date_time_string(), format % args))
+            sys.stderr.flush()
+        except Exception:
+            pass
 
     def _check_auth(self, path: str) -> bool:
         """Verify API key authentication if CLAUDEMARK_SERVER_API_KEY is configured."""
@@ -80,6 +89,7 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         self.wfile.write(payload)
+        self.wfile.flush()
 
     def _send_bytes(self, status: int, content_type: str, data: bytes | str) -> None:
         raw = data.encode("utf-8") if isinstance(data, str) else data
@@ -89,6 +99,7 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         self.wfile.write(raw)
+        self.wfile.flush()
 
     def do_OPTIONS(self) -> None:
         self.send_response(HTTPStatus.NO_CONTENT)
@@ -312,9 +323,12 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
                 in_p.write_bytes(raw_bytes)
                 rep = clean_single_file(in_p, out_p)
                 cleaned_bytes = out_p.read_bytes() if out_p.is_file() else raw_bytes
+                b64_str = base64.b64encode(cleaned_bytes).decode("ascii")
                 self._send_json(200, {
                     "ok": True,
-                    "cleaned": base64.b64encode(cleaned_bytes).decode("ascii"),
+                    "cleaned": b64_str,
+                    "cleaned_file_base64": b64_str,
+                    "cleaned_size_bytes": len(cleaned_bytes),
                     "report": rep.to_dict(),
                 })
             return
@@ -322,13 +336,15 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
         self._send_json(404, {"error": f"Endpoint not found: {path}"})
 
 
-def run_server(host: str = "127.0.0.1", port: int = 8765) -> None:
+def run_server(host: str = "127.0.0.1", port: int = 8950) -> None:
     """Start ClaudeMark HTTP server."""
+    ThreadingHTTPServer.allow_reuse_address = True
     server = ThreadingHTTPServer((host, port), ClaudeMarkHandler)
-    print(f"ClaudeMark Server listening on http://{host}:{port}/")
+    server.daemon_threads = True
+    print(f"ClaudeMark Server listening on http://{host}:{port}/", flush=True)
     try:
         server.serve_forever()
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, SystemExit):
         print("\nShutting down ClaudeMark server...")
     finally:
         server.server_close()
@@ -337,6 +353,6 @@ def run_server(host: str = "127.0.0.1", port: int = 8765) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run ClaudeMark HTTP server")
     parser.add_argument("--host", default="127.0.0.1", help="Host interface to bind")
-    parser.add_argument("--port", type=int, default=8765, help="Port to listen on")
+    parser.add_argument("--port", type=int, default=8950, help="Port to listen on")
     args = parser.parse_args()
     run_server(args.host, args.port)
