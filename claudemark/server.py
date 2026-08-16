@@ -171,12 +171,23 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         path = parsed.path.rstrip("/")
 
+        length = int(self.headers.get("Content-Length", 0))
+
         if not self._check_auth(path):
+            if length > 0:
+                try:
+                    self.rfile.read(min(length, 4096))
+                except Exception:
+                    pass
             self._send_json(401, {"error": "Unauthorized: Invalid or missing API key"})
             return
 
-        length = int(self.headers.get("Content-Length", 0))
         if length > MAX_INPUT_BYTES:
+            if length > 0:
+                try:
+                    self.rfile.read(min(length, 4096))
+                except Exception:
+                    pass
             self._send_json(413, {"error": f"Payload too large (max {MAX_INPUT_BYTES} bytes)"})
             return
 
