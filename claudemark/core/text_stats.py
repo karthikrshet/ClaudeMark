@@ -60,8 +60,25 @@ class TextStatistics:
         return asdict(self)
 
 
-_SENTENCE_SPLIT_RE = re.compile(r'(?<=[.!?])\s+(?=[A-Z0-9"\'])')
 _WORD_RE = re.compile(r"\b[^\W\d_]+(?:'[^\W\d_]+)?\b", re.UNICODE)
+
+
+def _segment_sentences(text: str) -> list[str]:
+    """Linearly segment text into sentences with O(n) complexity and zero backtracking."""
+    sentences: list[str] = []
+    current: list[str] = []
+    for char in text:
+        current.append(char)
+        if char in ".!?" and len(current) > 1:
+            s = "".join(current).strip()
+            if s:
+                sentences.append(s)
+            current = []
+    if current:
+        rest = "".join(current).strip()
+        if rest:
+            sentences.append(rest)
+    return sentences
 
 
 def calculate_entropy(elements: list[Any]) -> float:
@@ -104,8 +121,7 @@ def analyze_text_statistics(text: str) -> TextStatistics:
     # Sentences
     raw_sentences: list[str] = []
     for para in paragraphs:
-        splits = _SENTENCE_SPLIT_RE.split(para)
-        for s in splits:
+        for s in _segment_sentences(para):
             cleaned = s.strip()
             if cleaned:
                 raw_sentences.append(cleaned)

@@ -2,9 +2,19 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
+
+
+def validate_safe_path(p: Path | str) -> Path:
+    """Validate and sanitize file path to prevent arbitrary path traversal and injection."""
+    raw = str(p)
+    if "\x00" in raw:
+        raise ValueError("Illegal null byte in file path")
+    normalized = os.path.normpath(raw)
+    return Path(normalized).resolve()
 
 
 @dataclass

@@ -41,6 +41,18 @@ from .web.app import get_static_asset
 MAX_INPUT_BYTES = 100 * 1024 * 1024  # 100 MB
 
 
+_ALLOWED_EXTENSIONS = {
+    ".txt", ".text", ".md", ".markdown", ".html", ".htm",
+    ".pdf", ".docx", ".odt", ".png", ".jpg", ".jpeg", ".webp", ".svg", ".avif", ".heic"
+}
+
+
+def _get_safe_extension(raw_name: str) -> str:
+    """Extract and validate file extension against strict whitelist."""
+    ext = Path(raw_name).suffix.lower()
+    return ext if ext in _ALLOWED_EXTENSIONS else ".bin"
+
+
 class ClaudeMarkHandler(BaseHTTPRequestHandler):
     """HTTP request handler for ClaudeMark."""
 
@@ -175,7 +187,9 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
 
         if path == "/inspect":
             file_b64 = req_data.get("file", "")
-            name = req_data.get("name", "input.bin")
+            raw_name = req_data.get("name", "input.bin")
+            safe_ext = _get_safe_extension(raw_name)
+
             try:
                 raw_bytes = base64.b64decode(file_b64)
             except Exception:
@@ -183,7 +197,8 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
                 return
 
             with tempfile.TemporaryDirectory() as td:
-                tp = Path(td) / Path(name).name
+                # Use fixed filename with validated extension inside temp sandbox
+                tp = Path(td) / f"upload_payload{safe_ext}"
                 tp.write_bytes(raw_bytes)
                 rep = inspect_single_file(tp)
                 self._send_json(200, {"ok": True, "suspicious": rep.suspicious, "report": rep.to_dict()})
@@ -191,7 +206,9 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
 
         if path == "/clean":
             file_b64 = req_data.get("file", "")
-            name = req_data.get("name", "input.bin")
+            raw_name = req_data.get("name", "input.bin")
+            safe_ext = _get_safe_extension(raw_name)
+
             try:
                 raw_bytes = base64.b64decode(file_b64)
             except Exception:
@@ -199,8 +216,9 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
                 return
 
             with tempfile.TemporaryDirectory() as td:
-                in_p = Path(td) / Path(name).name
-                out_p = Path(td) / f"cleaned_{Path(name).name}"
+                # Use fixed filenames with validated extensions inside temp sandbox
+                in_p = Path(td) / f"input_payload{safe_ext}"
+                out_p = Path(td) / f"cleaned_payload{safe_ext}"
                 in_p.write_bytes(raw_bytes)
                 rep = clean_single_file(in_p, out_p)
                 cleaned_bytes = out_p.read_bytes() if out_p.is_file() else raw_bytes
