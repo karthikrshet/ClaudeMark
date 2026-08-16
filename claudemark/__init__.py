@@ -37,7 +37,7 @@ from .watermark.base import WatermarkAnalyzer, WatermarkResult
 from .watermark.claude_detector import ClaudeWatermarkAnalyzer
 from .watermark.registry import registry
 
-__version__ = "0.1.0"
+__version__ = "2.0.0"
 __author__ = "Karthik R Shet"
 
 
