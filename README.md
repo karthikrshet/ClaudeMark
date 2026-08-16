@@ -8,195 +8,304 @@
 
 # ClaudeMark
 
-> **Complete AI Watermark, Provenance Forensics & Disruption Platform**  
-> *A scientific, 100% local-first open-source research suite for multi-AI watermark detection, Unicode steganography forensics, document sanitization, C2PA / EXIF provenance trees, statistical disruption rewriting, and defensive container security.*
-
 [![CI](https://github.com/karthikrshet/ClaudeMark/actions/workflows/ci.yml/badge.svg)](https://github.com/karthikrshet/ClaudeMark/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/karthikrshet/ClaudeMark)](https://github.com/karthikrshet/ClaudeMark/releases)
 [![Stars](https://img.shields.io/github/stars/karthikrshet/ClaudeMark)](https://github.com/karthikrshet/ClaudeMark/stargazers)
 [![Forks](https://img.shields.io/github/forks/karthikrshet/ClaudeMark)](https://github.com/karthikrshet/ClaudeMark/forks)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+Local-first multi-AI watermark detection, provenance forensics, document sanitization, statistical disruption rewriting, and container security platform for content you own.
+
+| Layer | Target | Mechanism |
+| --- | --- | --- |
+| **Layer A (Deterministic)** | Invisible Unicode, ZWSP, ZWNJ, ZWJ, WJ, BOM, MVS, Unicode Tags, Variation Selectors, BiDi overrides, exotic spaces, homoglyphs | Linear-time token analysis, NFC normalization, steganography visualization (`<ZWSP>`, `<BOM>`, `<RLO>`) |
+| **Layer B (Statistical Text)** | Statistical token bias, transition regularity, entropy modulation, Kirchenbauer red/green list bias | Pluggable research detectors (Claude, Kirchenbauer, SynthID-style, Generic) + best-effort disruption rewriting |
+| **Files & Containers** | C2PA manifests, JUMBF containers, EXIF, XMP, IPTC, document XML streams, generator signatures | Structural metadata stripping for PNG, JPEG, WebP, SVG, AVIF, HEIC, PDF, DOCX, ODT, HTML, Markdown |
+| **Security & Safety** | Decompression bombs, malicious PDF actions, executable VBA macros, path traversal | Zip compression ratio limits (100x), action scanning (`/JavaScript`, `/Launch`), macro detection (`vbaProject.bin`) |
+| **Pixel Domain (Research)** | Latent and spatial image watermarks | Standardized research adapters for SynthID-Image, CtrlRegen, MarkDiffusion, Tree-Ring, Stable Signature, StegaStamp |
+
+Vendors and ecosystems evaluated: **Claude (Anthropic research heuristics)**, **Gemini / SynthID-Text**, **OpenAI provenance surfaces**, **open-LLM Kirchenbauer-class schemes**.
+
+**Latest release:** [v2.0.0](https://github.com/karthikrshet/ClaudeMark/releases/tag/v2.0.0)  
 **Author & Maintainer:** [Karthik R Shet](https://github.com/karthikrshet)  
-**Repository:** [https://github.com/karthikrshet/ClaudeMark](https://github.com/karthikrshet/ClaudeMark)  
-**Latest Release:** [v2.0.0](https://github.com/karthikrshet/ClaudeMark/releases)
+**Repository:** [https://github.com/karthikrshet/ClaudeMark](https://github.com/karthikrshet/ClaudeMark)
 
 ---
 
-## ⚡ Quick 30-Second Demo
+## Quick Use (CLI)
 
 ```bash
-# 1. Clone & install
-git clone https://github.com/karthikrshet/ClaudeMark.git
-cd ClaudeMark
+# 1. Text Analysis (Statistical watermark signal + Unicode anomalies)
+python claudemark.py analyze sample.txt --algorithm claude --verbose
+python claudemark.py analyze sample.txt --algorithm kirchenbauer --json
 
-# 2. Analyze text for statistical AI signals and Unicode steganography
-python claudemark.py analyze --text "In conclusion, it is important to analyze comprehensive paradigms across stakeholders."
+# 2. Unicode Forensics (Inspect, Visualize, Clean)
+python claudemark.py unicode inspect draft.txt
+python claudemark.py unicode visualize draft.txt      # Exposes <ZWSP>, <BOM>, <RLO>, etc.
+python claudemark.py unicode clean draft.txt -o clean.txt
 
-# 3. Reveal invisible Unicode watermarks visually
-python claudemark.py unicode visualize input.txt
+# 3. Statistical Disruption & Rewrite Lab (Best-effort restructuring)
+python claudemark.py rewrite draft.txt -o rewritten.txt --strategy synonym_cadence
+python claudemark.py evaluate draft.txt rewritten.txt # Measures score shift, semantic similarity, entropy delta
 
-# 4. Best-effort statistical watermark disruption & rewriting
-python claudemark.py rewrite input.txt -o rewritten.txt
+# 4. File Provenance & Sanitization (10 formats)
+python claudemark.py inspect document.pdf
+python claudemark.py clean document.pdf -o clean.pdf
+python claudemark.py inspect photo.png
+python claudemark.py clean photo.png -o clean_photo.png
 
-# 5. Evaluate before/after watermark score shifts and semantic similarity
-python claudemark.py evaluate input.txt rewritten.txt
+# 5. C2PA Hierarchy & Provenance Trees
+python claudemark.py c2pa inspect image.jpg
 
-# 6. Defensively scan files for zip bombs, macros, and malicious PDF actions
-python claudemark.py security scan document.pdf
+# 6. Defensive Security Scanner
+python claudemark.py security scan upload.pdf
 
-# 7. Start the interactive Web Dashboard & REST API
-python claudemark.py serve --port 8765
-# Open in browser: http://127.0.0.1:8765
+# 7. AI Agent Tool Dispatcher (Local & zero-egress)
+python claudemark.py agent list
+python claudemark.py agent exec analyze_watermark --args '{"text":"Sample text", "algorithm":"claude"}'
+
+# 8. Start Local Web Dashboard & REST API
+python claudemark.py serve --host 127.0.0.1 --port 8765
 ```
 
 ---
 
-## 🌟 Capabilities Matrix
+## Text Tools Refuse Binary Input
 
-| Capability Category | ClaudeMark v2 | Description |
-| :--- | :---: | :--- |
-| **🕵️ Unicode / Invisible Forensics** | ⭐⭐⭐⭐⭐ | Detects ZWSP, ZWNJ, ZWJ, WJ, BOM, TAGs, Variation Selectors, BiDi overrides, NBSP, and homoglyphs. Provides `inspect`, `visualize` (`Hello<ZWSP>world`), `normalize`, `clean`, and `diff`. |
-| **📊 Statistical AI Detectors** | ⭐⭐⭐⭐⭐ | Pluggable engines: Claude Research Detector, Kirchenbauer (Green/Red token z-score), SynthID-style entropy modulation adapter, and Generic Baseline. |
-| **🔄 Statistical Disruption & Rewrite** | ⭐⭐⭐⭐⭐ | Best-effort text restructuring, synonym rotation, cadence rebalancing, with before/after scoring, edit distance, and semantic similarity tracking. |
-| **🖼️ Image & Pixel Forensics** | ⭐⭐⭐⭐⭐ | Container parsing for PNG, JPEG, WebP, SVG, AVIF, HEIC. Pluggable pixel research adapters for SynthID-Image, CtrlRegen, MarkDiffusion, Tree-Ring, Stable Signature, and StegaStamp. |
-| **🛡️ C2PA & Provenance Trees** | ⭐⭐⭐⭐⭐ | Manifest detection, JUMBF parsing, claim extraction, software agent detection, actions, assertions, and formatted ASCII provenance trees. |
-| **📁 Document Sanitization** | ⭐⭐⭐⭐⭐ | Zero-leakage metadata scrubbing across PDF, DOCX, ODT, HTML, Markdown, and TXT with zip bomb and macro safety defenses. |
-| **🛡️ Defensive Security Hardening** | ⭐⭐⭐⭐⭐ | Zip bomb ratio checks, malicious PDF action scanning (`/JavaScript`, `/Launch`), macro detection (`vbaProject.bin`), Windows reserved device guards, and path traversal sanitization. |
-| **🤖 AI Agent Tooling** | ⭐⭐⭐⭐⭐ | Native MCP-compatible tool schema and dispatcher (`analyze_watermark`, `analyze_unicode`, `inspect_provenance`, `clean_file`, `disrupt_watermark`, `scan_security`, `get_capabilities`). |
-| **💻 Glassmorphic Web Dashboard** | ⭐⭐⭐⭐⭐ | 16 interactive tabs, visual gauges, provenance trees, Unicode visualization, rewrite lab, metadata table, and diff viewer. |
-| **🔒 100% Local & Zero Egress** | ⭐⭐⭐⭐⭐ | Strictly offline execution with **zero external telemetry or network calls**. |
+`analyze`, `unicode`, and `rewrite` operate on text. When pointed at binary files (`.docx`, `.pdf`, `.png`), ClaudeMark verifies file signatures and control-byte distributions to reject raw binary execution, preventing file corruption:
+
+```bash
+python claudemark.py unicode inspect document.docx
+# Refusing binary input: file contains ZIP container signature. Use 'inspect' or 'clean' instead.
+```
 
 ---
 
-## 🏗️ Architecture & Component Hierarchy
+## HTTP REST Service
+
+ClaudeMark includes a built-in standard library HTTP service (`claudemark/server.py`) serving both the interactive glassmorphic web dashboard and a machine-readable REST API:
+
+| Method | Path | Body / Query | Description |
+| --- | --- | --- | --- |
+| `GET` | `/health` | None | Service health status and version |
+| `GET` | `/capabilities` | None | Active detectors, supported document/image formats, and system tools |
+| `GET` | `/openapi.json` | None | Dynamically generated OpenAPI 3.0.3 specification |
+| `POST` | `/inspect` | `{"file": "<base64>", "name": "doc.pdf"}` | Base64 file inspection returning provenance findings and risk status |
+| `POST` | `/clean` | `{"file": "<base64>", "name": "doc.pdf"}` | Base64 file cleaning returning sanitized payload and action report |
+| `POST` | `/api/analyze` | `{"text": "...", "algorithm": "claude", "threshold": 0.65}` | Statistical watermark and text metrics analysis |
+| `POST` | `/api/unicode/analyze` | `{"text": "..."}` | Detailed Unicode anomaly inspection |
+| `POST` | `/api/unicode/visualize` | `{"text": "..."}` | Renders hidden Unicode markers into visible tag syntax |
+| `POST` | `/api/rewrite` | `{"text": "...", "strategy": "synonym_cadence"}` | Best-effort statistical watermark disruption |
+| `POST` | `/api/evaluate` | `{"original": "...", "processed": "...", "algorithm": "claude"}` | Before/after comparative metrics evaluation |
+| `POST` | `/api/diff` | `{"original": "...", "processed": "..."}` | Forensic text diff with anomaly reduction tracking |
+| `POST` | `/api/agent/tools` | None | Lists available agent tool definitions in JSON schema |
+| `POST` | `/api/agent/exec` | `{"tool_name": "...", "arguments": {...}}` | Executes agent tool invocation locally |
+
+```bash
+# Health check
+curl -s http://127.0.0.1:8765/health
+
+# Analyze text via REST
+curl -s -X POST http://127.0.0.1:8765/api/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"text": "In conclusion, comprehensive paradigms are essential.", "algorithm": "claude"}'
+```
+
+---
+
+## Docker and Compose Infrastructure
+
+Run ClaudeMark inside an isolated container with read-only root filesystems and non-root execution:
+
+```bash
+# Build and run with Docker Compose
+docker compose up -d
+
+# Check service health
+curl -s http://127.0.0.1:8765/health
+```
+
+Optional external system dependencies (automatically used when present on host or in container):
+
+| System Tool | Role |
+| --- | --- |
+| `c2patool` | Cryptographic verification of C2PA manifests and signatures |
+| `exiftool` | Secondary metadata inspection and residual block scrubbing |
+| `qpdf` | Structural PDF object rebuilding and unreferenced object linearization |
+
+---
+
+## Environment Configuration
+
+Configuration variables are supported via environment exports or a local `.env` file (gitignored by default):
+
+| Variable | Target | Purpose |
+| --- | --- | --- |
+| `CLAUDEMARK_PORT` | HTTP Server | Port to bind server (default: `8765`) |
+| `CLAUDEMARK_HOST` | HTTP Server | Interface to bind (default: `127.0.0.1` loopback) |
+| `CLAUDEMARK_MAX_INPUT_BYTES` | File processing | Maximum allowed input payload (default: `104857600` / 100 MB) |
+| `CLAUDEMARK_REWRITE_SEED` | Rewrite Engine | Deterministic seed for reproducible local synonym rotation |
+
+---
+
+## Optional Pixel-Domain Watermark Research Framework
+
+For pixel-domain image watermarks, ClaudeMark provides standardized research adapters in `claudemark/pixel/`:
+
+1. **SynthID-Image Adapter**: Interface for spectral codebook and frequency-domain evaluation.
+2. **CtrlRegen Adapter**: Interface for ControlNet + DINOv2 controllable regeneration attacks.
+3. **MarkDiffusion Adapter**: Generative latent diffusion watermark verification harness and `DiffusionPurification` blind regeneration.
+4. **Tree-Ring / Ring-ID Adapter**: Frequency-domain circular watermark detection interface.
+5. **Stable Signature Adapter**: Latent extractor evaluation interface.
+6. **StegaStamp Adapter**: Deep steganographic decoder interface.
+
+Heavy research checkpoints are **not bundled** into the lightweight core package. When model weights are unconfigured, adapters report:
+
+```json
+{
+  "backend_name": "synthid-image",
+  "available": false,
+  "details": {
+    "message": "SynthID-Image requires official research checkpoints."
+  }
+}
+```
+
+---
+
+## Optional MarkLLM Text-Watermark Verification
+
+For controlled scientific experiments, ClaudeMark provides integration points for [THU-BPM/MarkLLM](https://github.com/THU-BPM/MarkLLM) evaluation harnesses. This allows benchmarking:
+- **KGW (Kirchenbauer et al.)** green/red list token sampling.
+- **SynthID-Text** distribution modulation.
+- Verification before and after Layer B disruption passes.
+
+---
+
+## Coverage Matrix
+
+| Channel | Claude Research | Gemini / SynthID | OpenAI Surfaces | Open-LLM / KGW |
+| --- | --- | --- | --- | --- |
+| **Layer A: Unicode & Edit Marks** | Yes (Deterministic) | Yes (Deterministic) | Yes (Deterministic) | Yes (Deterministic) |
+| **Layer B: Statistical Sampling** | Research Heuristic | Research Adapter | Experimental | Published z-score test |
+| **C2PA / Container Metadata** | Supported formats | Supported formats | Supported formats | Supported formats |
+| **Pixel Domain Watermarks** | Adapter framework | Adapter framework | Adapter framework | Adapter framework |
+
+---
+
+## How Text Marking Works
+
+Modern LLM watermarks embed signals in **token selection frequencies** (generative sampling bias) or **invisible formatting carriers**:
+
+1. **Layer A (Deterministic)**: Removes invisible Unicode carriers (zero-width spaces, joiners, tags, directional overrides, homoglyphs).
+2. **Layer B (Statistical Disruption)**: Disrupts token-level sampling biases via syntax restructuring, synonym substitution, and cadence rebalancing.
+3. **File Sanitizers**: Removes C2PA, EXIF, XMP, IPTC, and generator properties from document and image containers.
+
+---
+
+## Disclaimer on Statistical Watermark Disruption
+
+Statistical watermarks exist in **word choices and syntactic transitions**. The signal is distributed across sentences, meaning:
+
+1. **Disruption requires rewording, not formatting tweaks.** Superficial re-indentation or spacing changes do not alter token-choice distributions.
+2. **Rewording alters writing cadence.** Best-effort rewriting replaces specific vocabulary and sentence lengths, which can impact stylistic nuance.
+3. **No magic eraser exists.** Statistical detection is probabilistic. ClaudeMark provides experimental research transformations with transparent before/after metrics, not absolute evasion guarantees.
+
+---
+
+## File Format Capabilities
+
+| Format | Inspection Method | Sanitization Action |
+| --- | --- | --- |
+| **PNG** | Chunk scanner for `tEXt`, `zTXt`, `iTXt`, `eXIf`, `c2pa` | Strips metadata chunks while preserving image IDAT streams |
+| **JPEG** | Segment parser for `APP1` (EXIF/XMP), `APP13` (IPTC), `COM` | Drops metadata markers and retains compressed scan data |
+| **WebP** | RIFF chunk parser for `EXIF`, `XMP `, `C2PA`, `ICCP` | Rebuilds RIFF container without metadata chunks |
+| **SVG** | XML parser for `<metadata>`, XML comments, RDF blocks | Strips metadata elements while retaining vector geometry |
+| **PDF** | Byte scan for `/Metadata`, `/Info`, and C2PA markers | Rebuilds structural object graphs (via `qpdf` or internal sanitizer) |
+| **DOCX / ODT** | Zip entry parser for `docProps/`, `meta.xml`, `customXml/` | Scrubs metadata streams and cleans body XML Unicode |
+| **HTML / Markdown** | Regex and tag parser for AI meta tags, JSON-LD, frontmatter | Drops AI attributes and cleans body text Unicode |
+
+#### Why PDF Requires Structural Rebuilding
+
+Standard metadata tools often append update records to PDFs rather than rewriting object tables. ClaudeMark integrates with `qpdf --linearize` when available to rewrite the object graph, ensuring unreferenced metadata streams are removed.
+
+---
+
+## Residual Risk After a Clean
+
+| Channel | What ClaudeMark Sanitizes | What May Remain | External Verification Reference |
+| --- | --- | --- | --- |
+| **Hard-bound C2PA / EXIF / XMP** | Yes (stripped from container) | In-content soft bindings | [c2patool](https://github.com/contentauth/c2pa-rs), [Content Credentials](https://contentcredentials.org/verify) |
+| **Invisible Steganography** | Yes (all zero-width and control chars) | Normal visible text | Built-in `unicode inspect` and `visualize` |
+| **Statistical Token Marks** | Best-effort disruption | Residual token distributions | Built-in `evaluate` and research detectors |
+
+---
+
+## Defensive Security Architecture
+
+All file processing follows defensive security controls:
+- **Zip Bomb Defense**: Enforces maximum decompression ratio limits ($100\times$) and uncompressed size ceilings ($100\text{ MB}$).
+- **PDF Security Scanner**: Flags embedded `/JavaScript`, `/JS`, `/Launch`, `/EmbeddedFiles`, and `/SubmitForm` actions.
+- **Macro Detection**: Flags embedded VBA macro projects (`vbaProject.bin`).
+- **Path Traversal Guards**: Normalizes paths, rejects null bytes, guards against directory traversal (`../`), and protects Windows reserved device names (`CON`, `PRN`, `AUX`, `NUL`, `COM1-9`, `LPT1-9`).
+- **Zero-Egress Guarantee**: All core operations run strictly offline without outbound network calls.
+
+---
+
+## Tests and Verification
+
+Run the full automated test suite (79 tests across all subsystems):
+
+```bash
+# Run pytest across the entire repository
+python -m pytest tests/ -v
+```
 
 ```text
-                                  ClaudeMark v2
-                                        │
-         ┌──────────────────────────────┼──────────────────────────────┐
-         ↓                              ↓                              ↓
-      ANALYZE                        INSPECT                         CLEAN / REWRITE
-         │                              │                              │
- ┌───────┴───────┐              ┌───────┴───────┐              ┌───────┴───────┐
- │  Statistical  │              │  C2PA / EXIF  │              │    Unicode    │
- │   Detectors   │              │   Metadata    │              │  Normalizer   │
- ├───────────────┤              ├───────────────┤              ├───────────────┤
- │ • Claude Mark │              │ • C2PA Trees  │              │ • Zero-width  │
- │ • Kirchenbauer│              │ • EXIF / XMP  │              │ • BiDi / NBSP │
- │ • SynthID-text│              │ • IPTC / Tags │              │ • Homoglyphs  │
- │ • Generic     │              │ • Document Xml│              │ • Disruption  │
- └───────────────┘              └───────────────┘              └───────────────┘
-         │                              │                              │
-         └──────────────────────────────┼──────────────────────────────┘
-                                        ↓
-                              UNIFIED FORENSIC ENGINE
-                                        ↓
-         ┌──────────────────────────────┼──────────────────────────────┐
-         ↓                              ↓                              ↓
-      CLI TOOLS                     REST API & WEB                  AI AGENTS
-  claudemark analyze             http://127.0.0.1:8765         JSON Schema Tooling
-  claudemark unicode             /api/unicode/analyze          Local Tool Dispatcher
-  claudemark rewrite             /api/rewrite                  Zero-Egress Security
-  claudemark security            /api/security/scan
+============================== 79 passed in 5.42s =============================
 ```
 
 ---
 
-## 📋 Comprehensive CLI Reference
+## Changelog
 
-### 1. Unicode & Steganography Forensics
-```bash
-# Inspect text for invisible characters and homoglyphs
-claudemark unicode inspect suspicious.txt
+### [2.0.0] - 2026-08-16
+- **Unicode Forensics**: Added `visualize_unicode_markers()` for human-readable tag rendering (`<ZWSP>`, `<BOM>`, `<RLO>`).
+- **Rewrite Lab (`claudemark/rewrite/`)**: Best-effort statistical watermark disruption, synonym substitution, cadence rebalancing, and before/after evaluation.
+- **Pixel Research Framework (`claudemark/pixel/`)**: Standardized adapters for SynthID-Image, CtrlRegen, MarkDiffusion, Tree-Ring, Stable Signature, and StegaStamp.
+- **C2PA Hierarchy**: Provenance tree extraction with claim generator, software agent, and action parsing.
+- **Security Scanner (`claudemark/security/`)**: Defensive scanner for zip bombs, malicious PDF actions, macros, and path traversal.
+- **AI Agent Tools (`claudemark/agent/`)**: JSON schema tool definitions and local execution dispatcher.
+- **Test Suite**: Expanded to 79 tests with 100% pass rate.
 
-# Visualize invisible characters with human-readable tags (<ZWSP>, <BOM>, <RLO>)
-claudemark unicode visualize suspicious.txt
-
-# Clean zero-width characters and normalize Unicode
-claudemark unicode clean suspicious.txt -o clean.txt
-```
-
-### 2. Statistical Watermark Analysis
-```bash
-# Analyze text with the Claude Research Detector
-claudemark analyze sample.txt --algorithm claude --verbose
-
-# Run Kirchenbauer green-token statistical analysis
-claudemark analyze sample.txt --algorithm kirchenbauer --json
-
-# Compare original and edited text
-claudemark diff original.txt edited.txt
-```
-
-### 3. Statistical Watermark Disruption (Rewrite Lab)
-```bash
-# Best-effort statistical watermark disruption via text restructuring
-claudemark rewrite input.txt -o rewritten.txt --strategy synonym_cadence
-
-# Evaluate watermark score shifts and semantic preservation
-claudemark evaluate input.txt rewritten.txt
-```
-
-### 4. File Provenance & C2PA Hierarchy
-```bash
-# Inspect any document or image for C2PA, EXIF, and AI footprints
-claudemark inspect photo.png
-
-# Display ASCII C2PA Provenance Tree
-claudemark c2pa inspect sample.jpg
-
-# Clean metadata from documents or images
-claudemark clean document.docx -o clean.docx
-```
-
-### 5. Defensive Security Scanner
-```bash
-# Defensively scan files for zip bombs, malicious PDF actions, and macros
-claudemark security scan upload.pdf
-```
-
-### 6. AI Agent Tool Interface
-```bash
-# List all available agent tool schemas
-claudemark agent list
-
-# Execute an agent tool locally
-claudemark agent exec analyze_unicode --args '{"text":"Hello\u200bWorld"}'
-```
+### [1.0.0] - 2026-08-16
+- Initial release of ClaudeMark multi-AI statistical detector suite, document/image sanitizers, web dashboard, and REST API.
 
 ---
 
-## 🧪 Benchmark Framework & Empirical Evaluation
+## Ethics and Responsible Research
 
-ClaudeMark includes an empirical evaluation pipeline in `benchmarks/` measuring:
-- **True Positive Rate (TPR)**
-- **False Positive Rate (FPR)**
-- **Precision, Recall, & F1-Score**
-- **Entropy & Burstiness Calibrations**
+ClaudeMark is intended for privacy, hygiene, and forensic research on content **you own or have authorization to process**.
 
-```bash
-python benchmarks/baseline_runner.py --human benchmarks/human --synthetic benchmarks/synthetic --algorithm claude
-```
+1. **Probabilistic Nature**: Statistical detection is based on mathematical regularities and does not constitute definitive proof of AI generation.
+2. **Disruption vs. Erasure**: Disruption rewriting is experimental and does not guarantee complete signal removal.
+3. **No Vendor Secrets**: Algorithms are derived from open, peer-reviewed scientific literature.
 
 ---
 
-## 🔬 Scientific Honesty & Positioning
+## License
 
-1. **Probabilistic Research Signals**: Statistical detectors measure structural token regularities, burstiness anomalies, and entropy modulation. They are research tools and do not represent definitive authorship proof.
-2. **Proprietary Vendor Independence**: ClaudeMark does not claim access to proprietary internal weights or vendor secrets. All algorithms are based on peer-reviewed open scientific literature (Kirchenbauer et al., SynthID specifications, and information-theoretic distributions).
-3. **Disruption vs. Erasure**: Watermark disruption via text restructuring is a best-effort research technique with no guarantee of complete signal removal.
+ClaudeMark is licensed under the [MIT License](LICENSE). Created by [Karthik R Shet](https://github.com/karthikrshet).
 
 ---
 
-## 🔒 Privacy & Zero-Egress Guarantee
+## Scientific References
 
-- **100% Local Execution**: All detectors, normalizers, metadata cleaners, and security scanners run entirely offline on your local CPU.
-- **Zero Network Telemetry**: ClaudeMark never sends your documents, text, or file data to external servers.
-- **Defensive Sandboxing**: Built-in protections against zip bombs, decompression exhaustion, path traversal, and malicious PDF scripts.
-
----
-
-## 📄 License
-
-ClaudeMark is released under the **MIT License**. Created by [Karthik R Shet](https://github.com/karthikrshet).
+- Dathathri et al., *Scalable watermarking for identifying large language model outputs* (Nature 2024, SynthID-Text).
+- Kirchenbauer et al., *A Watermark for Large Language Models* (ICML 2023).
+- Content Authenticity Initiative, *C2PA Technical Specification* (c2pa.org).
+- Liu et al., *Image Watermarks are Removable Using Controllable Regeneration from Clean Noise* (ICLR 2025, CtrlRegen).
+- Pan et al., *MarkDiffusion: An Open-Source Toolkit for Generative Watermarking of Latent Diffusion Models* (JMLR 2025).
+- Zhang et al., *Watermarks in the Sand: Impossibility of Strong Watermarking for Generative Models* (ICML 2024).
+- Kassis & Hengartner, *UnMarker: A Universal Attack on Defensive Image Watermarking* (IEEE S&P 2025).
+- Goonatilake & Ateniese, *Removing the Watermark Is Not Enough: Forensic Stealth in Generative-AI Watermark Removal* (arXiv:2605.09203).
