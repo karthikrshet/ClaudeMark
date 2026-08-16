@@ -6,7 +6,7 @@
  \____|_|\__,_|\__,_|\__,_|\___|_|  |_|\__,_|_|  |_|\_\
 ```
 
-# ClaudeMark v2
+# ClaudeMark
 
 > **Complete AI Watermark, Provenance Forensics & Disruption Platform**  
 > *A scientific, 100% local-first open-source research suite for multi-AI watermark detection, Unicode steganography forensics, document sanitization, C2PA / EXIF provenance trees, statistical disruption rewriting, and defensive container security.*
