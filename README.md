@@ -297,15 +297,6 @@ ClaudeMark is intended for privacy, hygiene, and forensic research on content **
 
 ClaudeMark is licensed under the [MIT License](LICENSE). Created by [Karthik R Shet](https://github.com/karthikrshet).
 
----
-
-## Acknowledgements and Prior Work
-
-ClaudeMark builds upon the foundational insights and methodologies established by the open-source privacy and watermark forensics research community:
-
-- **Guillaume Meyer ([watermarks-remover](https://github.com/guillaumemeyer/watermarks-remover))**: Special credit to Guillaume Meyer for pioneering architectural insights into multi-vendor AI provenance removal pipelines, stdlib-first HTTP services, and multi-layered provenance cleaning workflows.
-
----
 
 ## Scientific References
 
