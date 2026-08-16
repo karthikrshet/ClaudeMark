@@ -1,55 +1,32 @@
-# Security Policy
+# Security Policy for ClaudeMark
 
-## Supported versions
+## Supported Versions
 
-Security fixes target the latest code on the `main` branch and the most recent
-GitHub Release (when releases exist). Older tags are not maintained.
+| Version | Supported          |
+| ------- | ------------------ |
+| 2.0.x   | :white_check_mark: |
+| 1.0.x   | :white_check_mark: |
+| < 1.0   | :x:                |
 
-## Reporting a vulnerability
+---
 
-**Do not open a public issue for security problems.**
+## Reporting a Vulnerability
 
-Please report vulnerabilities privately via
-**[GitHub Security Advisories](https://github.com/karthikrshet/ClaudeMark/security/advisories/new)**
+If you discover a potential security vulnerability in ClaudeMark, please report it responsibly by contacting the maintainer via GitHub Security Advisories or by emailing [karthikrshet@users.noreply.github.com](mailto:karthikrshet@users.noreply.github.com).
 
-Do **not** open a public issue for suspected vulnerabilities.
+Please include:
+1. Description of the vulnerability and attack vector.
+2. Proof of Concept (PoC) file or reproduction script.
+3. Affected versions and environment.
 
-Include:
+We aim to acknowledge reports within 48 hours and provide patches promptly.
 
-- A description of the issue and its impact
-- Steps to reproduce or a proof of concept when safe to share
-- Affected version or commit if known
+---
 
-## What to expect
+## Defensive Architecture
 
-- Acknowledgement when a maintainer has seen the report
-- An initial assessment of severity and scope
-- A coordinated fix and disclosure timeline when the report is valid
-
-We will not take legal action against good-faith research that follows this
-policy and avoids privacy harm, service disruption, or data destruction.
-
-## Scope notes for watermarks-remover
-
-watermarks-remover is a local agent skill and a set of Python scripts that
-inspect and clean text and image files. Reports that matter most include:
-
-- Path traversal or unsafe writes outside intended output paths
-- Command injection when optional tools (`c2patool`, `exiftool`) are invoked
-- Parser crashes or resource exhaustion on crafted images/text that affect
-  the host beyond normal process failure
-- Accidental leakage of user file contents in logs, error messages, or
-  diagnostics that ship with the skill
-
-Out of scope (unless they cause a concrete security impact in this project):
-
-- Bypassing AI provenance marks for fraud, copyright evasion, or illegal
-  non-disclosure (see skill `references/ethics.md`)
-- Issues only in third-party tools (`c2patool`, `exiftool`, agents)
-- Social engineering of individual users
-
-## Prefer private disclosure
-
-After a fix is released, we may credit reporters who want public credit.
-Do not publish exploit details until a fixed release is available, unless we
-agree otherwise.
+ClaudeMark employs defensive engineering practices:
+- **Zero Network Egress**: Core analysis and forensic tools never communicate over the internet.
+- **Decompression Bomb Protection**: Zip containers are inspected with strict compression ratio limits ($100\times$) and uncompressed size ceilings ($100\text{ MB}$).
+- **Path Traversal Guards**: Filenames and paths are normalized, null-byte inspected, and resolved within isolated temporary sandboxes.
+- **Malicious Payload Disarming**: PDFs with embedded `/JavaScript`, `/Launch`, or `/EmbeddedFiles` and Office documents containing macros (`vbaProject.bin`) are flagged by the security scanner and never executed.
