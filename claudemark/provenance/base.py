@@ -11,12 +11,13 @@ from typing import Any
 
 def validate_safe_path(p: Path | str, base_dir: Path | str | None = None) -> Path:
     """Validate and sanitize file path to prevent arbitrary path traversal and injection."""
-    path_obj = Path(p).resolve()
-    raw = str(path_obj)
+    raw = str(p)
     if "\x00" in raw:
         raise ValueError("Illegal null byte in file path")
+    normalized = os.path.normpath(raw)
+    path_obj = Path(normalized).resolve()
     if base_dir is not None:
-        base_path = Path(base_dir).resolve()
+        base_path = Path(os.path.normpath(str(base_dir))).resolve()
         try:
             path_obj.relative_to(base_path)
         except ValueError:

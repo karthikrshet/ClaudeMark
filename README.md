@@ -299,8 +299,17 @@ ClaudeMark is licensed under the [MIT License](LICENSE). Created by [Karthik R S
 
 ---
 
+## Acknowledgements and Prior Work
+
+ClaudeMark builds upon the foundational insights and methodologies established by the open-source privacy and watermark forensics research community:
+
+- **Guillaume Meyer ([watermarks-remover](https://github.com/guillaumemeyer/watermarks-remover))**: Special credit to Guillaume Meyer for pioneering architectural insights into multi-vendor AI provenance removal pipelines, stdlib-first HTTP services, and multi-layered provenance cleaning workflows.
+
+---
+
 ## Scientific References
 
+- Meyer, G., *watermarks-remover: Agent skill + stdlib Python service to strip multi-vendor AI provenance marks* (https://github.com/guillaumemeyer/watermarks-remover).
 - Dathathri et al., *Scalable watermarking for identifying large language model outputs* (Nature 2024, SynthID-Text).
 - Kirchenbauer et al., *A Watermark for Large Language Models* (ICML 2023).
 - Content Authenticity Initiative, *C2PA Technical Specification* (c2pa.org).

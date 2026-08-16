@@ -16,8 +16,8 @@ from ..watermark.statistical import (
 )
 from .base import DetectionResult, StatisticalHypothesis, WatermarkDetector
 
-_WORD_RE = re.compile(r"\b[^\W\d_]+(?:'[^\W\d_]+)?\b", re.UNICODE)
-_SENTENCE_SPLIT_RE = re.compile(r'(?<=[.!?])\s+(?=[A-Z0-9"\'])')
+_WORD_RE = re.compile(r"[A-Za-z0-9_]+(?:'[A-Za-z0-9_]+)?")
+_SENTENCE_SPLIT_RE = re.compile(r"[.!?]+\s+")
 
 HUMAN_BASELINE = {
     "avg_burstiness": 0.18,
