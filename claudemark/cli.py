@@ -23,6 +23,7 @@ if hasattr(sys.stderr, "reconfigure"):
 
 from . import __version__, analyze_text, compute_forensic_diff, normalize_text
 from .core.normalizer import NormalizationOptions
+from .core.unicode_forensics import analyze_unicode_forensics, visualize_unicode_markers
 from .detectors.registry import detector_registry
 from .provenance.batch import (
     batch_clean,

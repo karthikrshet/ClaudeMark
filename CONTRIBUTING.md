@@ -1,60 +1,37 @@
 # Contributing to ClaudeMark
 
-Thank you for helping improve **ClaudeMark** — the multi-AI watermark research, Unicode steganography forensics, and file provenance toolkit.
+Thank you for your interest in contributing to **ClaudeMark**! We welcome bug reports, feature suggestions, detector algorithms, provenance cleaners, and documentation improvements.
 
 ---
 
-## 👥 Roles & Governance
+## 🛠️ Development Setup
 
-| Action | Who |
-| :--- | :--- |
-| Open issues & discussions | Anyone |
-| Open pull requests | Anyone (fork the repo) |
-| Suggest releases | Anyone (open a release issue) |
-| Approve & merge pull requests | Maintainer only ([@karthikrshet](https://github.com/karthikrshet)) |
+```bash
+# 1. Fork and clone the repository
+git clone https://github.com/<your-username>/ClaudeMark.git
+cd ClaudeMark
 
-`main` is protected. All changes require a pull request, a passing CI test suite, and an approval from the maintainer.
+# 2. Set up virtual environment
+python -m venv .venv
+# Activate virtual environment
+# Windows:
+.venv\Scripts\activate
+# Linux/macOS:
+source .venv/bin/activate
 
----
+# 3. Install development requirements
+pip install -r requirements-dev.txt
 
-## 💻 Development Prerequisites
-
-- **Python 3.10+** (standard library only for core engines; no heavy dependencies required).
-- From the repo root, run:
-  ```bash
-  python -m pytest tests/
-  ```
-  Ensure all tests pass before opening a PR.
-
----
-
-## 🗂️ Codebase Layout
-
-| Path | Purpose |
-| :--- | :--- |
-| `claudemark/core/` | Text statistics, Unicode forensics, safe normalizer, and diff engine |
-| `claudemark/detectors/` | Pluggable multi-AI watermark engines (`claude`, `kirchenbauer`, `synthid`, `generic`) |
-| `claudemark/provenance/` | Document & image provenance cleaners (PDF, DOCX, ODT, HTML, MD, PNG, JPEG, WebP, SVG) |
-| `claudemark/reports/` | Terminal ASCII, JSON schema, and Markdown reports |
-| `claudemark/web/` | Web Dashboard and static assets |
-| `claudemark/server.py` | Self-contained HTTP server & REST API |
-| `claudemark/cli.py` & `claudemark.py` | Unified CLI commands (`analyze`, `inspect`, `clean`, `normalize`, `diff`, `serve`, `capabilities`) |
-| `tests/` | Unit and integration test suite |
-| `benchmarks/` | Empirical calibration harness and datasets |
+# 4. Run the full test suite
+python -m pytest tests/
+```
 
 ---
 
-## ✅ Pull Request Checklist
+## 📜 Scientific & Ethical Guidelines
 
-- [ ] New feature or bug fix has corresponding tests in `tests/`.
-- [ ] `python -m pytest tests/` passes cleanly with 100% success rate.
-- [ ] Any new public detector or format is registered in `claudemark/detectors/` or `claudemark/provenance/`.
-- [ ] Code adheres to clean, modern Python 3 typing and formatting.
-
----
-
-## 🛡️ Community & Policies
-
-- [Code of Conduct](CODE_OF_CONDUCT.md) — Community standards and expectations.
-- [Security Policy](SECURITY.md) — Private vulnerability reporting.
-- Author: [Karthik R Shet](https://github.com/karthikrshet)
+1. **Zero-Egress by Default**: Core detectors, cleaners, and analyzers must operate 100% locally on user hardware without outbound telemetry or unauthorized API calls.
+2. **Scientific Transparency**: Do not claim that heuristics prove definitive authorship or guarantee watermark removal. Clearly document assumptions, minimum text lengths, and false-positive risks.
+3. **Pluggable Architecture**: Implement new detectors using `WatermarkDetector` and register them in `detector_registry`. Implement pixel backends using `PixelWatermarkBackend`.
+4. **Defensive Processing**: Treat all incoming files as potentially untrusted input. Use `validate_safe_path()` and avoid shell executions.
+5. **Comprehensive Tests**: Every new feature, cleaner, or detector must include unit tests. Ensure all tests pass with `python -m pytest tests/`.
