@@ -524,19 +524,30 @@
           const res = await resp.json();
           if (cleanResults) {
             cleanResults.style.display = 'block';
+            const b64 = res.cleaned || res.cleaned_file_base64 || '';
+            const byteCharacters = atob(b64);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: 'application/octet-stream' });
+            const blobUrl = URL.createObjectURL(blob);
+
             cleanResults.innerHTML = `
               <div class="card" style="margin-top: 1rem;">
                 <h3>File Cleaning Report: ${file.name}</h3>
                 <div class="metric-grid" style="margin-top: 0.75rem;">
                   <div class="metric-box"><span class="metric-title">Original Size</span><span class="metric-value">${(file.size / 1024).toFixed(1)} KB</span></div>
-                  <div class="metric-box"><span class="metric-title">Cleaned Size</span><span class="metric-value">${((res.cleaned_size_bytes || file.size) / 1024).toFixed(1)} KB</span></div>
+                  <div class="metric-box"><span class="metric-title">Cleaned Size</span><span class="metric-value">${((res.cleaned_size_bytes || byteArray.length) / 1024).toFixed(1)} KB</span></div>
                   <div class="metric-box"><span class="metric-title">Status</span><span class="metric-value" style="color:var(--color-success)">Cleaned</span></div>
                 </div>
                 <div style="margin-top: 1.25rem;">
-                  <a href="data:application/octet-stream;base64,${res.cleaned_file_base64}" download="clean_${file.name}" class="btn btn-primary btn-specular">Download Cleaned File</a>
+                  <a href="${blobUrl}" download="clean_${file.name}" class="btn btn-primary btn-specular" style="text-decoration:none;">Download Cleaned File</a>
                 </div>
               </div>
             `;
+            initSpecularButtons();
           }
         } catch (err) {
           alert(`File cleaning error: ${err.message}`);

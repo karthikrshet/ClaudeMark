@@ -1,27 +1,14 @@
 <div align="center">
 
-```text
- ╔══════════════════════════════════════════════════════════════════════╗
- ║   ██████╗██╗      █████╗ ██╗   ██╗██████╗ ███████╗                   ║
- ║  ██╔════╝██║     ██╔══██╗██║   ██║██╔══██╗██╔════╝                   ║
- ║  ██║     ██║     ███████║██║   ██║██║  ██║█████╗                     ║
- ║  ██║     ██║     ██╔══██║██║   ██║██║  ██║██╔══╝                     ║
- ║  ╚██████╗███████╗██║  ██║╚██████╔╝██████╔╝███████╗                   ║
- ║   ╚═════╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝                   ║
- ║  ███╗   ███╗ █████╗ ██████╗ ██╗  ██╗                                 ║
- ║  ████╗ ████║██╔══██╗██╔══██╗██║ ██╔╝   [ FORENSICS LAB ]             ║
- ║  ██╔████╔██║███████║██████╔╝█████═╝    [ PROVENANCE PURIFIER ]       ║
- ║  ██║╚██╔╝██║██╔══██║██╔══██╗██╔═██╗    [ ZERO-EGRESS HARDENED ]      ║
- ║  ██║ ╚═╝ ██║██║  ██║██║  ██║██║ ╚██╗                                 ║
- ║  ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝                                 ║
- ║ ════════════════════════════════════════════════════════════════════ ║
- ║     LOCAL-FIRST AI WATERMARK & CONTAINER PROVENANCE PLATFORM         ║
- ╚══════════════════════════════════════════════════════════════════════╝
-```
+<p align="center">
+  <img src="assets/logo.svg" width="96" height="96" alt="ClaudeMark Logo" />
+</p>
 
-# ClaudeMark
+# Claude<span style="color:#06B6D4">Mark</span>
 
-**Scientific AI Watermark Forensics, Unicode Steganography Visualizer, Container Provenance Purifier & Defensive Security Scanner**
+### Multi-AI Watermark & Provenance Forensics
+
+**Deterministic Multi-AI Detection, Zero-Width Steganography Sanitization & C2PA / EXIF / XMP Provenance Purifier**
 
 [![CI](https://github.com/karthikrshet/ClaudeMark/actions/workflows/ci.yml/badge.svg)](https://github.com/karthikrshet/ClaudeMark/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/karthikrshet/ClaudeMark)](https://github.com/karthikrshet/ClaudeMark/releases)
