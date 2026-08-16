@@ -71,7 +71,7 @@ def _write_output(content: str, out_path: str | None) -> None:
         p.write_text(content, encoding="utf-8")
         print(f"Report written to: {p}")
     else:
-        print(content)
+        sys.stdout.write(content)
 
 
 def cmd_analyze(args: argparse.Namespace) -> int:
@@ -236,12 +236,169 @@ def cmd_diff(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_unicode(args: argparse.Namespace) -> int:
+    text, source_name = _read_input(args.file, args.text)
+    op = args.operation
+
+    if op == "inspect":
+        rep = analyze_unicode_forensics(text)
+        if args.json:
+            print(json.dumps(rep.to_dict(), indent=2))
+        else:
+            print(f"Unicode Forensics Report: {source_name}")
+            print("═" * 50)
+            print(f"Total Anomalies:       {rep.total_anomalies}")
+            print(f"Zero-Width Characters: {rep.zero_width_count}")
+            print(f"Non-Breaking Spaces:   {rep.nbsp_count}")
+            print(f"BiDi Controls:         {rep.bidi_control_count}")
+            print(f"Homoglyphs:            {rep.homoglyph_count}")
+            print(f"NFC Normalized:        {rep.is_nfc}")
+            print(f"Summary:               {rep.summary_text}")
+
+    elif op == "visualize":
+        vis = visualize_unicode_markers(text)
+        _write_output(vis, args.output)
+
+    elif op in ("normalize", "clean"):
+        res = normalize_text(text)
+        if args.json:
+            print(json.dumps(res.to_dict(), indent=2))
+        else:
+            _write_output(res.normalized_text, args.output)
+            print(f"Cleaned {res.zero_width_removed} zero-width character(s).", file=sys.stderr)
+
+    return 0
+
+
+def cmd_rewrite(args: argparse.Namespace) -> int:
+    text, source_name = _read_input(args.file, args.text)
+    from .rewrite.paraphrase import disrupt_watermark
+
+    res = disrupt_watermark(text, strategy=args.strategy, detector_name=args.algorithm)
+    if args.json:
+        print(json.dumps(res.to_dict(), indent=2))
+    else:
+        _write_output(res.rewritten_text, args.output)
+        if res.evaluation:
+            ev = res.evaluation
+            print(f"\nDisruption Evaluation ({source_name}):", file=sys.stderr)
+            print(f"  • Original Watermark Score:  {ev.original_watermark_score:.2f}", file=sys.stderr)
+            print(f"  • Rewritten Watermark Score: {ev.rewritten_watermark_score:.2f} (delta: {ev.watermark_score_delta:+.2f})", file=sys.stderr)
+            print(f"  • Semantic Similarity:       {ev.semantic_similarity * 100:.1f}%", file=sys.stderr)
+            print(f"  • Character Change:          {ev.character_change_ratio:.1f}%", file=sys.stderr)
+
+    return 0
+
+
+def cmd_evaluate(args: argparse.Namespace) -> int:
+    orig_text, orig_name = _read_input(args.file1, None)
+    proc_text, proc_name = _read_input(args.file2, None)
+    from .rewrite.evaluation import evaluate_rewrite
+
+    ev = evaluate_rewrite(orig_text, proc_text, detector_name=args.algorithm)
+    if args.json:
+        print(json.dumps(ev.to_dict(), indent=2))
+    else:
+        print(f"ClaudeMark Before/After Forensic Evaluation")
+        print("═" * 50)
+        print(f"Original File:         {orig_name}")
+        print(f"Processed File:        {proc_name}")
+        print(f"Watermark Score:       {ev.original_watermark_score:.2f} -> {ev.rewritten_watermark_score:.2f} (delta: {ev.watermark_score_delta:+.2f})")
+        print(f"Semantic Similarity:   {ev.semantic_similarity * 100:.1f}%")
+        print(f"Character Change:      {ev.character_change_ratio:.1f}%")
+        print(f"Word Change:           {ev.word_change_ratio:.1f}%")
+        print(f"Shannon Entropy:       {ev.original_entropy:.2f} -> {ev.rewritten_entropy:.2f}")
+
+    return 0
+
+
+def cmd_security(args: argparse.Namespace) -> int:
+    from .security.scanner import scan_file_security
+    target = Path(args.target).resolve()
+    rep = scan_file_security(target)
+    if args.json:
+        print(json.dumps(rep.to_dict(), indent=2))
+    else:
+        print(f"ClaudeMark Security Scan: {rep.file_name}")
+        print("═" * 50)
+        print(f"Threat Level: {rep.threat_level}")
+        print(f"Is Safe:      {'YES' if rep.is_safe else 'NO'}")
+        if rep.warnings:
+            print("\nWarnings:")
+            for w in rep.warnings:
+                print(f"  ⚠️  {w}")
+        else:
+            print("\nNo security vulnerabilities or malicious payloads detected.")
+
+    return 0 if rep.is_safe else 1
+
+
+def cmd_agent(args: argparse.Namespace) -> int:
+    from .agent.tools import AGENT_TOOLS_MANIFEST, execute_agent_tool
+
+    if args.subcommand == "list":
+        print(json.dumps(AGENT_TOOLS_MANIFEST, indent=2))
+    elif args.subcommand == "exec":
+        arguments = json.loads(args.args) if args.args else {}
+        res = execute_agent_tool(args.tool_name, arguments)
+        print(json.dumps(res, indent=2))
+
+    return 0
+
+
+def cmd_c2pa(args: argparse.Namespace) -> int:
+    target = Path(args.target).resolve()
+    from .provenance.c2pa import inspect_c2pa_bytes, inspect_c2pa_tool
+
+    if not target.is_file():
+        sys.stderr.write(f"Error: Target file not found: {target}\n")
+        return 1
+
+    data = target.read_bytes()
+    tool_res = inspect_c2pa_tool(target)
+    byte_res = inspect_c2pa_bytes(data, asset_name=target.name)
+
+    res = tool_res if tool_res else byte_res
+    if args.json:
+        print(json.dumps(res, indent=2))
+    else:
+        print(f"C2PA Provenance Inspection: {target.name}")
+        print("═" * 50)
+        print(f"Status: {res.get('status', 'UNVERIFIED')}")
+        tree = byte_res.get("provenance_tree", {})
+        print("\nProvenance Hierarchy:")
+        print(tree.get("tree_text", "No provenance tree generated"))
+
+    return 0
+
+
+def cmd_normalize(args: argparse.Namespace) -> int:
+    text, source_name = _read_input(args.file, args.text)
+    opts = NormalizationOptions(
+        strip_zero_width=not args.keep_zero_width,
+        normalize_spaces=not args.keep_special_spaces,
+        normalize_unicode_form=args.unicode_form,
+        replace_homoglyphs=args.replace_homoglyphs,
+    )
+    res = normalize_text(text, opts)
+    if args.json:
+        print(json.dumps(res.to_dict(), indent=2))
+    else:
+        _write_output(res.normalized_text, args.output)
+    return 0
+
+
 def cmd_capabilities(args: argparse.Namespace) -> int:
+    from .agent.tools import AGENT_TOOLS_MANIFEST
+    from .pixel.registry import pixel_registry
+
     caps = {
         "version": __version__,
         "detectors": detector_registry.list_detectors(),
+        "pixel_backends": pixel_registry.list_details(),
         "supported_document_formats": ["pdf", "docx", "odt", "html", "md", "txt"],
-        "supported_image_formats": ["png", "jpeg", "jpg", "webp", "svg"],
+        "supported_image_formats": ["png", "jpeg", "jpg", "webp", "svg", "avif", "heic"],
+        "agent_tools": [t["name"] for t in AGENT_TOOLS_MANIFEST],
         "system_tools": {
             "c2patool": shutil.which("c2patool") is not None,
             "exiftool": shutil.which("exiftool") is not None,
@@ -254,8 +411,10 @@ def cmd_capabilities(args: argparse.Namespace) -> int:
         print(f"ClaudeMark Capabilities (v{__version__})")
         print("═" * 50)
         print(f"Active Detectors:     {', '.join(caps['detectors'])}")
+        print(f"Pixel Backends:       {', '.join(b['name'] for b in caps['pixel_backends'])}")
         print(f"Document Formats:     {', '.join(caps['supported_document_formats'])}")
         print(f"Image Formats:        {', '.join(caps['supported_image_formats'])}")
+        print(f"Agent Tools:          {', '.join(caps['agent_tools'])}")
         print("System Tools:")
         for tool, present in caps["system_tools"].items():
             print(f"  • {tool:<12} {'[Available]' if present else '[Not Installed]'}")
@@ -344,43 +503,78 @@ def build_parser() -> argparse.ArgumentParser:
     p_diff.add_argument("--output", "-o", default=None, help="Save diff output to file")
     p_diff.set_defaults(func=cmd_diff)
 
+    # unicode
+    p_uni = subparsers.add_parser("unicode", help="Unicode and invisible character forensics")
+    p_uni.add_argument("operation", choices=["inspect", "visualize", "normalize", "clean"], help="Operation to run")
+    p_uni.add_argument("file", nargs="?", default=None, help="Target text file")
+    p_uni.add_argument("--text", "-t", default=None, help="Direct text string")
+    p_uni.add_argument("--json", action="store_true", help="Output JSON report")
+    p_uni.add_argument("--output", "-o", default=None, help="Destination output file")
+    p_uni.set_defaults(func=cmd_unicode)
+
+    # rewrite
+    p_rw = subparsers.add_parser("rewrite", help="Best-effort statistical watermark disruption through text restructuring")
+    p_rw.add_argument("file", nargs="?", default=None, help="Target text file")
+    p_rw.add_argument("--text", "-t", default=None, help="Direct text string")
+    p_rw.add_argument("--strategy", choices=["synonym_cadence", "cadence_only"], default="synonym_cadence", help="Disruption strategy")
+    p_rw.add_argument("--algorithm", "-a", default="claude", help="Detector to evaluate disruption against")
+    p_rw.add_argument("--json", action="store_true", help="Output JSON evaluation")
+    p_rw.add_argument("--output", "-o", default=None, help="Destination output file")
+    p_rw.set_defaults(func=cmd_rewrite)
+
+    # evaluate
+    p_eval = subparsers.add_parser("evaluate", help="Evaluate before/after watermark score shifts and semantic similarity")
+    p_eval.add_argument("file1", help="Original text file")
+    p_eval.add_argument("file2", help="Rewritten / cleaned text file")
+    p_eval.add_argument("--algorithm", "-a", default="claude", help="Detector to evaluate score shifts")
+    p_eval.add_argument("--json", action="store_true", help="Output JSON evaluation report")
+    p_eval.set_defaults(func=cmd_evaluate)
+
+    # security
+    p_sec = subparsers.add_parser("security", help="Defensive security inspection for zip bombs, malicious PDFs, and macros")
+    p_sec.add_argument("target", help="Target file path to scan")
+    p_sec.add_argument("--json", action="store_true", help="Output JSON security report")
+    p_sec.set_defaults(func=cmd_security)
+
+    # c2pa
+    p_c2pa = subparsers.add_parser("c2pa", help="C2PA manifest inspection and provenance hierarchy extraction")
+    p_c2pa.add_argument("target", help="Target file path to inspect")
+    p_c2pa.add_argument("--json", action="store_true", help="Output JSON C2PA manifest")
+    p_c2pa.set_defaults(func=cmd_c2pa)
+
+    # agent
+    p_agt = subparsers.add_parser("agent", help="AI Agent tool interface and dispatcher")
+    p_agt_sub = p_agt.add_subparsers(dest="subcommand", help="Agent action")
+    p_agt_list = p_agt_sub.add_parser("list", help="List all agent tools in JSON schema format")
+    p_agt_exec = p_agt_sub.add_parser("exec", help="Execute an agent tool locally")
+    p_agt_exec.add_argument("tool_name", help="Name of tool to execute")
+    p_agt_exec.add_argument("--args", default="{}", help="JSON string arguments")
+    p_agt.set_defaults(func=cmd_agent)
+
+    # normalize
+    p_norm = subparsers.add_parser("normalize", help="Safely strip invisible characters & normalize text")
+    p_norm.add_argument("file", nargs="?", default=None, help="Input text file path (or - for stdin)")
+    p_norm.add_argument("--text", "-t", default=None, help="Direct text string to normalize")
+    p_norm.add_argument("--json", action="store_true", help="Output JSON normalization details")
+    p_norm.add_argument("--keep-zero-width", action="store_true", help="Do not remove zero-width characters")
+    p_norm.add_argument("--keep-special-spaces", action="store_true", help="Do not replace non-breaking spaces")
+    p_norm.add_argument("--replace-homoglyphs", action="store_true", help="Replace Latin-confusable homoglyphs")
+    p_norm.add_argument("--unicode-form", choices=["NFC", "NFKC", "NFD", "NFKD", "none"], default="NFC", help="Unicode form")
+    p_norm.add_argument("--output", "-o", default=None, help="Save normalized text to output file")
+    p_norm.set_defaults(func=cmd_normalize)
+
     # capabilities
     p_caps = subparsers.add_parser("capabilities", help="Inspect available tools, detectors, and formats")
     p_caps.add_argument("--json", action="store_true", help="Output JSON capabilities")
     p_caps.set_defaults(func=cmd_capabilities)
 
-    # normalize
-    p_norm = subparsers.add_parser("normalize", help="Safely normalize text removing invisible watermark markers")
-    p_norm.add_argument("file", nargs="?", default=None, help="Input text file path")
-    p_norm.add_argument("--text", "-t", default=None, help="Direct text string to normalize")
-    p_norm.add_argument("--output", "-o", default=None, help="Output cleaned file path")
-    p_norm.add_argument("--nfkc", action="store_true", help="Use NFKC compatibility normalization instead of NFC")
-    p_norm.add_argument("--replace-homoglyphs", action="store_true", help="Replace Latin-confusable homoglyphs")
-    p_norm.add_argument("--keep-zero-width", action="store_true", help="Do not strip zero-width characters")
-    p_norm.add_argument("--keep-spaces", action="store_true", help="Do not normalize special spaces to ASCII")
-    p_norm.add_argument("--keep-bidi", action="store_true", help="Do not strip BiDi controls")
-    p_norm.add_argument("--verbose", "-v", action="store_true", help="Print summary banner")
-    p_norm.set_defaults(func=cmd_normalize)
-
-    # report
-    p_rep = subparsers.add_parser("report", help="Generate detailed Markdown or JSON forensic report")
-    p_rep.add_argument("file", nargs="?", default=None, help="Input text file path")
-    p_rep.add_argument("--text", "-t", default=None, help="Direct text string")
-    p_rep.add_argument("--json", action="store_true", help="Output JSON format")
-    p_rep.add_argument("--markdown", action="store_true", default=True, help="Output Markdown format")
-    p_rep.add_argument("--verbose", "-v", action="store_true", help="Include full hypothesis")
-    p_rep.add_argument("--threshold", type=float, default=None, help="Custom threshold")
-    p_rep.add_argument("--algorithm", "-a", default="claude", help="Watermark algorithm")
-    p_rep.add_argument("--output", "-o", default=None, help="Output file path")
-    p_rep.set_defaults(func=cmd_report)
-
     # experimental
-    p_exp = subparsers.add_parser("experimental", help="Run experimental calibration & threshold sweep")
-    p_exp.add_argument("--algorithm", "-a", default="claude", help="Algorithm to sweep")
+    p_exp = subparsers.add_parser("experimental", help="Run empirical research and calibration benchmarks")
+    p_exp.add_argument("--algorithm", "-a", default="claude", help="Detector to benchmark")
     p_exp.set_defaults(func=cmd_experimental)
 
     # version
-    p_ver = subparsers.add_parser("version", help="Print version & active detectors")
+    p_ver = subparsers.add_parser("version", help="Show ClaudeMark version and build info")
     p_ver.set_defaults(func=cmd_version)
 
     return parser
@@ -389,10 +583,19 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+
     if not hasattr(args, "func"):
         parser.print_help()
-        return 0
-    return args.func(args)
+        return 1
+
+    try:
+        return args.func(args)
+    except KeyboardInterrupt:
+        sys.stderr.write("\nInterrupted by user.\n")
+        return 130
+    except Exception as ex:
+        sys.stderr.write(f"Error: {ex}\n")
+        return 1
 
 
 if __name__ == "__main__":
