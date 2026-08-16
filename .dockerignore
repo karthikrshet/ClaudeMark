@@ -1,4 +1,46 @@
-# All images build with `service/` as the build context (see compose.yaml and
-# service/Dockerfile*). Nothing in the repo root is COPY'd into an image, so
-# deny everything. Use service/.dockerignore for per-image context filtering.
-*
+# Git and system directories
+.git
+.github
+.gemini
+.cursor
+.grok
+.agents
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testing & Linting
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Temporary files & logs
+*.log
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db
