@@ -13,7 +13,7 @@ import zlib
 from pathlib import Path
 from typing import Any
 
-from .base import FileCleaningReport, ProvenanceInspectionReport
+from .base import FileCleaningReport, ProvenanceInspectionReport, validate_safe_path
 from .c2pa import inspect_c2pa_bytes
 from .exif_xmp import inspect_exif_xmp_bytes
 
@@ -32,7 +32,7 @@ _SVG_COMMENTS_RE = re.compile(r"<!--.*?-->", re.DOTALL)
 
 def inspect_image_file(file_path: Path) -> ProvenanceInspectionReport:
     """Inspect image file for EXIF, XMP, C2PA, and AI-generator markers."""
-    file_path = Path(file_path).resolve()
+    file_path = validate_safe_path(file_path)
     suffix = file_path.suffix.lower()
     size = file_path.stat().st_size
     data = file_path.read_bytes()
@@ -73,9 +73,9 @@ def clean_image_file(
     remove_pixel: str | None = None,
 ) -> FileCleaningReport:
     """Strip metadata chunks from image containers safely."""
-    input_path = Path(input_path).resolve()
+    input_path = validate_safe_path(input_path)
     suffix = input_path.suffix.lower()
-    out = Path(output_path).resolve() if output_path else input_path
+    out = validate_safe_path(output_path) if output_path else input_path
     orig_size = input_path.stat().st_size
     data = input_path.read_bytes()
     actions: list[str] = []
