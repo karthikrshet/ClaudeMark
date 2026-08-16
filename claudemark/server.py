@@ -80,6 +80,7 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         self.wfile.write(payload)
+        self.wfile.flush()
 
     def _send_bytes(self, status: int, content_type: str, data: bytes | str) -> None:
         raw = data.encode("utf-8") if isinstance(data, str) else data
@@ -89,6 +90,7 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         self.wfile.write(raw)
+        self.wfile.flush()
 
     def do_OPTIONS(self) -> None:
         self.send_response(HTTPStatus.NO_CONTENT)
@@ -322,8 +324,9 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
         self._send_json(404, {"error": f"Endpoint not found: {path}"})
 
 
-def run_server(host: str = "127.0.0.1", port: int = 8765) -> None:
+def run_server(host: str = "127.0.0.1", port: int = 8888) -> None:
     """Start ClaudeMark HTTP server."""
+    ThreadingHTTPServer.allow_reuse_address = True
     server = ThreadingHTTPServer((host, port), ClaudeMarkHandler)
     print(f"ClaudeMark Server listening on http://{host}:{port}/")
     try:
