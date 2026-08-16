@@ -89,3 +89,66 @@ def compute_forensic_diff(
         score_delta=score_delta,
         summary="\n".join(summary_lines),
     )
+
+
+def render_html_diff(
+    original_text: str,
+    processed_text: str,
+    file1_name: str = "Original",
+    file2_name: str = "Processed",
+    diff_result: ForensicDiffResult | None = None,
+) -> str:
+    """Render an interactive side-by-side dark-mode HTML comparison report."""
+    if diff_result is None:
+        diff_result = compute_forensic_diff(original_text, processed_text)
+
+    html_diff = difflib.HtmlDiff(tabsize=4, wrapcolumn=60)
+    diff_table = html_diff.make_table(
+        original_text.splitlines(),
+        processed_text.splitlines(),
+        fromdesc=file1_name,
+        todesc=file2_name,
+        context=True,
+        numlines=3,
+    )
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ClaudeMark Forensic Diff: {file1_name} vs {file2_name}</title>
+<style>
+  body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; background: #0f172a; color: #e2e8f0; margin: 0; padding: 24px; }}
+  .header {{ border-bottom: 1px solid #334155; padding-bottom: 16px; margin-bottom: 24px; }}
+  h1 {{ margin: 0 0 8px; color: #38bdf8; font-size: 24px; }}
+  .stats-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }}
+  .card {{ background: #1e293b; padding: 16px; border-radius: 8px; border: 1px solid #334155; }}
+  .card-label {{ color: #94a3b8; font-size: 12px; text-transform: uppercase; margin-bottom: 4px; }}
+  .card-val {{ font-size: 20px; font-weight: bold; color: #f8fafc; }}
+  .diff-wrapper {{ background: #1e293b; border-radius: 8px; padding: 16px; overflow-x: auto; border: 1px solid #334155; }}
+  table.diff {{ width: 100%; border-collapse: collapse; font-size: 13px; }}
+  table.diff td {{ padding: 4px 8px; font-family: monospace; }}
+  .diff_header {{ background: #0f172a; color: #64748b; font-weight: bold; }}
+  .diff_next {{ display: none; }}
+  .diff_add {{ background: #064e3b; color: #6ee7b7; }}
+  .diff_chg {{ background: #713f12; color: #fde047; }}
+  .diff_sub {{ background: #7f1d1d; color: #fca5a5; }}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>ClaudeMark Forensic Comparison Report</h1>
+  <div>Comparing: <code>{file1_name}</code> vs <code>{file2_name}</code></div>
+</div>
+<div class="stats-grid">
+  <div class="card"><div class="card-label">Visible Similarity</div><div class="card-val">{round(diff_result.visible_similarity_ratio * 100.0, 1)}%</div></div>
+  <div class="card"><div class="card-label">Unicode Anomalies Removed</div><div class="card-val">{diff_result.anomalies_removed}</div></div>
+  <div class="card"><div class="card-label">Character Delta</div><div class="card-val">{diff_result.char_delta:+d} ({diff_result.char_change_pct}%)</div></div>
+  <div class="card"><div class="card-label">Word Delta</div><div class="card-val">{diff_result.word_delta:+d}</div></div>
+</div>
+<div class="diff-wrapper">
+  {diff_table}
+</div>
+</body>
+</html>
+"""

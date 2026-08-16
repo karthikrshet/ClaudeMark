@@ -103,22 +103,29 @@ ClaudeMark is a research and forensic analysis toolkit designed for authorized c
 
 ---
 
-## Agent Skill & Integration
+---
 
-ClaudeMark provides a self-contained Agent skill definition at [`skills/ai-forensics/SKILL.md`](skills/ai-forensics/SKILL.md) enabling Claude Desktop, Cursor, Codex, and Grok to drive analysis and cleaning over the local HTTP API or CLI.
+## Universal Agent Ecosystem & Skill Integrations
 
-### Install Skill (Grok / Project-Local)
+ClaudeMark provides native, zero-egress agent skills, rule definitions, and schema contracts for all major AI coding environments:
+
+| Environment | Integration Path | Features |
+| :--- | :--- | :--- |
+| **Antigravity IDE** | `.agents/skills/ai-forensics/` & `.agents/rules/` | Automatic IDE skill discovery, inline steganography linting |
+| **Claude Desktop / Code** | `.claude/skills/ai-forensics/` & MCP tools | Tool dispatch over local stdlib server |
+| **Cursor IDE** | `.cursor/rules/clean-user-facing-text.mdc` | Manuscript hygiene rule and workspace skill |
+| **OpenAI Codex / ChatGPT** | `claudemark schema` & JSON-RPC | OpenAI-compatible tool calling schemas |
+| **Grok** | `.grok/skills/ai-forensics/` | Project-local agent skills |
 
 ```bash
-mkdir -p .grok/skills
-ln -sfn "$(pwd)/skills/ai-forensics" .grok/skills/ai-forensics
-```
+# Universal installer across all environments (Cursor, Antigravity, Claude, Grok, Codex)
+python install_skill.py --target all
 
-### Install Skill (Cursor / User-Global)
-
-```bash
-mkdir -p ~/.cursor/skills
-cp -r skills/ai-forensics ~/.cursor/skills/ai-forensics
+# Or install for a specific agent host
+python install_skill.py --target antigravity
+python install_skill.py --target cursor
+python install_skill.py --target claude
+python install_skill.py --target grok
 ```
 
 ---
@@ -152,33 +159,37 @@ python claudemark.py unicode inspect draft.txt
 python claudemark.py unicode visualize draft.txt      # Exposes <ZWSP>, <BOM>, <RLO>, etc.
 python claudemark.py unicode clean draft.txt -o clean.txt
 
-# 3. Statistical Disruption & Rewrite Lab (Best-effort restructuring)
+# 3. Statistical Disruption, Rewrite Lab & Interactive HTML Diff
 python claudemark.py rewrite draft.txt -o rewritten.txt --strategy synonym_cadence
 python claudemark.py evaluate draft.txt rewritten.txt # Measures score shift, semantic similarity, entropy delta
+python claudemark.py diff draft.txt rewritten.txt --html -o diff_report.html # Side-by-side visual HTML diff
 
-# 4. File Provenance & Sanitization (12 formats including AVIF & HEIC)
+# 4. File & Multimedia Provenance Sanitization (16 formats)
 python claudemark.py inspect document.pdf
 python claudemark.py clean document.pdf -o clean.pdf
-python claudemark.py inspect photo.png
 python claudemark.py clean photo.png -o clean_photo.png
-python claudemark.py inspect image.avif
 python claudemark.py clean image.avif -o clean_image.avif
+python claudemark.py clean video.mp4 -o clean_video.mp4
+python claudemark.py clean audio.mp3 -o clean_audio.mp3
 
-# 5. Recursive Directory Tree Audit
-python claudemark.py audit .                         # Scans entire directory tree for watermarks & risks
+# 5. Concurrent Multi-Threaded Directory Tree Audit
+python claudemark.py audit .                         # Fast parallel multi-threaded scan
 python claudemark.py audit . --json                  # Structured findings report
 
-# 6. C2PA Hierarchy & Provenance Trees
+# 6. JSON Schema Export (For AI Agents & Automation)
+python claudemark.py schema                          # Exports JSON Schemas for tool calling & APIs
+
+# 7. C2PA Hierarchy & Provenance Trees
 python claudemark.py c2pa inspect image.jpg
 
-# 7. Defensive Security Scanner
+# 8. Defensive Security Scanner
 python claudemark.py security scan upload.pdf
 
-# 8. AI Agent Tool Dispatcher (Local & zero-egress)
+# 9. AI Agent Tool Dispatcher (Local & zero-egress)
 python claudemark.py agent list
 python claudemark.py agent exec analyze_watermark --args '{"text":"Sample text", "algorithm":"claude"}'
 
-# 9. Start Local Web Dashboard & REST API
+# 10. Start Local Web Dashboard & REST API
 python claudemark.py serve --host 127.0.0.1 --port 8765
 ```
 
@@ -339,6 +350,8 @@ Statistical watermarks exist in **word choices and syntactic transitions**. The 
 | **JPEG** | Segment parser for `APP1` (EXIF/XMP), `APP13` (IPTC), `COM` | Drops metadata markers and retains compressed scan data |
 | **WebP** | RIFF chunk parser for `EXIF`, `XMP `, `C2PA`, `ICCP` | Rebuilds RIFF container without metadata chunks |
 | **AVIF / HEIC** | ISOBMFF box parser for `ftyp`, `meta`, `iloc`, `mdat` | Reconstructs container and strips `c2pa`, `Exif`, `xml ` boxes |
+| **MP4 / MOV / M4A** | ISOBMFF multimedia box parser for `ftyp`, `moov`, `mdat` | Drops `udta`, `c2pa`, `uuid`, and `XMP_` metadata atoms |
+| **MP3** | ID3v2 and ID3v1 tag byte frame analyzer | Strips ID3v2 header and ID3v1 trailer tags from audio streams |
 | **SVG** | XML parser for `<metadata>`, XML comments, RDF blocks | Strips metadata elements while retaining vector geometry |
 | **PDF** | Byte scan for `/Metadata`, `/Info`, and C2PA markers | Rebuilds structural object graphs (via `qpdf` or internal sanitizer) |
 | **DOCX / ODT** | Zip entry parser for `docProps/`, `meta.xml`, `customXml/` | Scrubs metadata streams and cleans body XML Unicode |
@@ -374,7 +387,7 @@ All file processing follows defensive security controls:
 
 ## Tests and Verification
 
-Run the full automated test suite (82 tests across all subsystems):
+Run the full automated test suite (90 tests across all subsystems):
 
 ```bash
 # Run pytest across the entire repository
@@ -382,7 +395,7 @@ python -m pytest tests/ -v
 ```
 
 ```text
-============================== 85 passed in 5.99s =============================
+============================== 90 passed in 6.19s =============================
 ```
 
 ---
@@ -390,19 +403,15 @@ python -m pytest tests/ -v
 ## Changelog
 
 ### [2.0.0] - 2026-08-16
-- **Native AVIF & HEIC Stripping (`claudemark/provenance/images.py`)**: Built-in standard library ISOBMFF box parser for `.avif` and `.heic` containers stripping `c2pa`, `Exif`, and `xml ` metadata boxes.
-- **Recursive Forensic Tree Audit (`claudemark/provenance/audit.py`)**: Added `claudemark audit [dir]` command for recursive directory auditing with finding confidence ratings (`confirmed`, `probable`, `informational`).
-- **Cursor Rule & Skill Installer**: Added `.cursor/rules/clean-user-facing-text.mdc` and cross-platform `install_skill.py`.
-- **Automated Research Bootstraps**: One-click scripts (`scripts/setup_synthid.*`, `scripts/setup_ctrlregen.*`) for optional GPU harnesses.
-- **Unicode Forensics**: Added `visualize_unicode_markers()` for human-readable tag rendering (`<ZWSP>`, `<BOM>`, `<RLO>`).
-- **Rewrite Lab (`claudemark/rewrite/`)**: Best-effort statistical watermark disruption, synonym substitution, cadence rebalancing, and before/after evaluation.
-- **Pixel Research Framework (`claudemark/pixel/`)**: Standardized adapters for SynthID-Image, CtrlRegen, MarkDiffusion, Tree-Ring, Stable Signature, and StegaStamp.
-- **C2PA Hierarchy**: Provenance tree extraction with claim generator, software agent, and action parsing.
-- **Security Scanner (`claudemark/security/`)**: Defensive scanner for zip bombs, malicious PDF actions, macros, and path traversal.
-- **Atomic File Replacement**: Hardened `safe_atomic_write_bytes()` and `safe_atomic_write_text()` preventing symlink redirection and corrupted writes.
-- **HTTP Bearer Auth**: Integrated `CLAUDEMARK_SERVER_API_KEY` token enforcement.
-- **AI Agent Tools (`claudemark/agent/`)**: JSON schema tool definitions and local execution dispatcher.
-- **Test Suite**: Expanded to 85 tests with 100% pass rate.
+- **Universal Agent Ecosystem**: Added native agent skills and workspace rules for **Antigravity IDE** (`.agents/`), **Claude Desktop**, **Cursor** (`.cursor/`), **OpenAI Codex**, and **Grok** with a single unified installer (`python install_skill.py --target all`).
+- **Multimedia Sanitization (`claudemark/provenance/multimedia.py`)**: Added ISOBMFF and ID3v2 parsers to strip metadata atoms and tags from `.mp4`, `.mov`, `.m4a`, and `.mp3` containers.
+- **Interactive Side-by-Side HTML Diff**: Added `claudemark diff --html -o report.html` generating visual dark-mode comparison tables.
+- **JSON Schema Export**: Added `claudemark schema` command for external agent tool calling and API contracts.
+- **Concurrent Directory Auditing**: ThreadPoolExecutor parallelized recursive audit engine.
+- **Native AVIF & HEIC Stripping**: ISOBMFF parser for `.avif` and `.heic` containers.
+- **Defensive Container Security Scanner**: Scanning for zip bombs, malicious PDF actions, macros, and path traversal.
+- **Zero-Egress Hardening**: 100% verified offline CPU execution.
+- **Test Suite**: Expanded to 90 tests with 100% pass rate.
 
 ### [1.0.0] - 2026-08-16
 - Initial release of ClaudeMark multi-AI statistical detector suite, document/image sanitizers, web dashboard, and REST API.
