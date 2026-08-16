@@ -13,6 +13,7 @@ from typing import Any
 from .. import analyze_text, compute_forensic_diff, normalize_text
 from ..core.unicode_forensics import analyze_unicode_forensics, visualize_unicode_markers
 from ..detectors.registry import detector_registry
+from ..provenance.base import validate_safe_path
 from ..provenance.batch import batch_clean, batch_inspect, clean_single_file, inspect_single_file
 from ..rewrite.paraphrase import disrupt_watermark
 from ..security.scanner import scan_file_security
@@ -124,13 +125,13 @@ def execute_agent_tool(tool_name: str, arguments: dict[str, Any]) -> dict[str, A
         return data
 
     elif tool_name == "inspect_provenance":
-        f_path = Path(arguments.get("file_path", "")).resolve()
+        f_path = validate_safe_path(arguments.get("file_path", ""))
         rep = inspect_single_file(f_path)
         return rep.to_dict()
 
     elif tool_name == "clean_file":
-        in_p = Path(arguments.get("input_path", "")).resolve()
-        out_p = Path(arguments.get("output_path", "")).resolve() if arguments.get("output_path") else None
+        in_p = validate_safe_path(arguments.get("input_path", ""))
+        out_p = validate_safe_path(arguments["output_path"]) if arguments.get("output_path") else None
         rep = clean_single_file(in_p, out_p)
         return rep.to_dict()
 
@@ -141,7 +142,7 @@ def execute_agent_tool(tool_name: str, arguments: dict[str, Any]) -> dict[str, A
         return res.to_dict()
 
     elif tool_name == "scan_security":
-        f_path = Path(arguments.get("file_path", "")).resolve()
+        f_path = validate_safe_path(arguments.get("file_path", ""))
         rep = scan_file_security(f_path)
         return rep.to_dict()
 

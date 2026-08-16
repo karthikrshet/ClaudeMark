@@ -13,6 +13,8 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
+from ..provenance.base import validate_safe_path
+
 # Maximum safe decompression threshold (100 MB default)
 MAX_SAFE_DECOMPRESSED_BYTES = 100 * 1024 * 1024
 MAX_SAFE_COMPRESSION_RATIO = 100.0
@@ -61,9 +63,20 @@ def check_path_security(path_str: str) -> list[str]:
     return warnings
 
 
-def scan_file_security(file_path: Path) -> SecurityScanReport:
+def scan_file_security(file_path: Path | str) -> SecurityScanReport:
     """Execute defensive security inspection across document, image, or container files."""
-    path = Path(file_path).resolve()
+    try:
+        path = validate_safe_path(file_path)
+    except Exception as exc:
+        return SecurityScanReport(
+            file_path=str(file_path),
+            file_name=os.path.basename(str(file_path)),
+            file_format="unknown",
+            is_safe=False,
+            warnings=[f"Invalid or unsafe path expression: {exc}"],
+            threat_level="CRITICAL",
+        )
+
     if not path.is_file():
         return SecurityScanReport(
             file_path=str(path),

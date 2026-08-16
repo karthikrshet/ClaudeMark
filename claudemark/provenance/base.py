@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import tempfile
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
@@ -10,17 +11,47 @@ from typing import Any
 
 def validate_safe_path(p: Path | str, base_dir: Path | str | None = None) -> Path:
     """Validate and sanitize file path to prevent arbitrary path traversal and injection."""
-    path_obj = Path(p).resolve()
-    raw = str(path_obj)
+    raw = str(p)
     if "\x00" in raw:
         raise ValueError("Illegal null byte in file path")
+    normalized = os.path.normpath(raw)
+    path_obj = Path(normalized).resolve()
     if base_dir is not None:
-        base_path = Path(base_dir).resolve()
+        base_path = Path(os.path.normpath(str(base_dir))).resolve()
         try:
             path_obj.relative_to(base_path)
         except ValueError:
             raise ValueError(f"Path traversal detected: {path_obj} is outside {base_path}")
     return path_obj
+
+
+def safe_atomic_write_bytes(destination: Path, data: bytes) -> None:
+    """Safely write bytes to a file via a temporary file and atomic replace to prevent symlink hijacking and partial writes."""
+    dest = Path(destination).resolve()
+    dest.parent.mkdir(parents=True, exist_ok=True)
+
+    # Prevent symlink redirection
+    if dest.is_symlink():
+        dest.unlink()
+
+    # Write to temp file in same directory to guarantee same filesystem for atomic rename
+    tmp_fd, tmp_path = tempfile.mkstemp(prefix=".cm_tmp_", dir=str(dest.parent))
+    try:
+        with os.fdopen(tmp_fd, "wb") as f:
+            f.write(data)
+        os.replace(tmp_path, str(dest))
+    except Exception:
+        if os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except Exception:
+                pass
+        raise
+
+
+def safe_atomic_write_text(destination: Path, text: str, encoding: str = "utf-8") -> None:
+    """Safely write text to a file via atomic replacement."""
+    safe_atomic_write_bytes(destination, text.encode(encoding, errors="replace"))
 
 
 @dataclass
