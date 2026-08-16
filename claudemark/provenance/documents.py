@@ -17,7 +17,7 @@ from typing import Any
 
 from ..core.normalizer import NormalizationOptions, normalize_text
 from ..core.unicode_forensics import analyze_unicode_forensics
-from .base import FileCleaningReport, ProvenanceInspectionReport
+from .base import FileCleaningReport, ProvenanceInspectionReport, validate_safe_path
 
 # XML / HTML metadata regex patterns
 _HTML_META_AI_RE = re.compile(
@@ -40,7 +40,7 @@ _AI_PROMPT_KEYWORDS = [
 
 def inspect_document(file_path: Path) -> ProvenanceInspectionReport:
     """Inspect document file for metadata, invisible characters, and AI markers."""
-    file_path = Path(file_path).resolve()
+    file_path = validate_safe_path(file_path)
     suffix = file_path.suffix.lower()
     size = file_path.stat().st_size
     data = file_path.read_bytes()
@@ -122,9 +122,9 @@ def inspect_document(file_path: Path) -> ProvenanceInspectionReport:
 
 def clean_document(input_path: Path, output_path: Path | None = None) -> FileCleaningReport:
     """Clean metadata and invisible watermarks from document container."""
-    input_path = Path(input_path).resolve()
+    input_path = validate_safe_path(input_path)
     suffix = input_path.suffix.lower()
-    out = Path(output_path).resolve() if output_path else input_path
+    out = validate_safe_path(output_path) if output_path else input_path
     orig_size = input_path.stat().st_size
     data = input_path.read_bytes()
     actions: list[str] = []

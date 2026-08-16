@@ -41,6 +41,13 @@ from .web.app import get_static_asset
 MAX_INPUT_BYTES = 100 * 1024 * 1024  # 100 MB
 
 
+def _sanitize_filename(raw_name: str) -> str:
+    """Sanitize user-provided filename to prevent path traversal."""
+    base = Path(raw_name).name
+    clean = "".join(c for c in base if c.isalnum() or c in "._-")
+    return clean if clean else "input.bin"
+
+
 class ClaudeMarkHandler(BaseHTTPRequestHandler):
     """HTTP request handler for ClaudeMark."""
 
@@ -175,7 +182,9 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
 
         if path == "/inspect":
             file_b64 = req_data.get("file", "")
-            name = req_data.get("name", "input.bin")
+            raw_name = req_data.get("name", "input.bin")
+            safe_name = _sanitize_filename(raw_name)
+
             try:
                 raw_bytes = base64.b64decode(file_b64)
             except Exception:
@@ -183,7 +192,11 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
                 return
 
             with tempfile.TemporaryDirectory() as td:
-                tp = Path(td) / Path(name).name
+                td_path = Path(td).resolve()
+                tp = (td_path / safe_name).resolve()
+                if not str(tp).startswith(str(td_path)):
+                    self._send_json(400, {"error": "Invalid file path"})
+                    return
                 tp.write_bytes(raw_bytes)
                 rep = inspect_single_file(tp)
                 self._send_json(200, {"ok": True, "suspicious": rep.suspicious, "report": rep.to_dict()})
@@ -191,7 +204,9 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
 
         if path == "/clean":
             file_b64 = req_data.get("file", "")
-            name = req_data.get("name", "input.bin")
+            raw_name = req_data.get("name", "input.bin")
+            safe_name = _sanitize_filename(raw_name)
+
             try:
                 raw_bytes = base64.b64decode(file_b64)
             except Exception:
@@ -199,8 +214,12 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
                 return
 
             with tempfile.TemporaryDirectory() as td:
-                in_p = Path(td) / Path(name).name
-                out_p = Path(td) / f"cleaned_{Path(name).name}"
+                td_path = Path(td).resolve()
+                in_p = (td_path / safe_name).resolve()
+                out_p = (td_path / f"cleaned_{safe_name}").resolve()
+                if not (str(in_p).startswith(str(td_path)) and str(out_p).startswith(str(td_path))):
+                    self._send_json(400, {"error": "Invalid file path"})
+                    return
                 in_p.write_bytes(raw_bytes)
                 rep = clean_single_file(in_p, out_p)
                 cleaned_bytes = out_p.read_bytes() if out_p.is_file() else raw_bytes
