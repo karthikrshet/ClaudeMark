@@ -14,42 +14,49 @@ def validate_safe_path(p: Path | str, base_dir: Path | str | None = None) -> Pat
     raw = str(p)
     if "\x00" in raw:
         raise ValueError("Illegal null byte in file path")
-    normalized = os.path.normpath(raw)
-    path_obj = Path(normalized).resolve()
+    
+    # Absolute normalized resolution
+    norm = os.path.normpath(raw)
+    abs_path = os.path.abspath(os.path.realpath(norm))
+    
     if base_dir is not None:
-        base_path = Path(os.path.normpath(str(base_dir))).resolve()
-        try:
-            path_obj.relative_to(base_path)
-        except ValueError:
-            raise ValueError(f"Path traversal detected: {path_obj} is outside {base_path}")
-    return path_obj
+        base_norm = os.path.normpath(str(base_dir))
+        base_abs = os.path.abspath(os.path.realpath(base_norm))
+        # Ensure path resides strictly inside base_dir
+        if os.path.commonpath([base_abs, abs_path]) != base_abs:
+            raise ValueError(f"Path traversal detected: {abs_path} is outside {base_abs}")
+            
+    return Path(abs_path)
 
 
-def safe_atomic_write_bytes(destination: Path, data: bytes) -> None:
+def safe_atomic_write_bytes(destination: Path | str, data: bytes) -> None:
     """Safely write bytes to a file via a temporary file and atomic replace to prevent symlink hijacking and partial writes."""
-    dest = Path(destination).resolve()
-    dest.parent.mkdir(parents=True, exist_ok=True)
+    safe_dest = validate_safe_path(destination)
+    dest_str = os.path.abspath(str(safe_dest))
+    parent_dir = os.path.abspath(os.path.dirname(dest_str))
+    os.makedirs(parent_dir, exist_ok=True)
 
     # Prevent symlink redirection
-    if dest.is_symlink():
-        dest.unlink()
+    if os.path.islink(dest_str):
+        os.unlink(dest_str)
 
     # Write to temp file in same directory to guarantee same filesystem for atomic rename
-    tmp_fd, tmp_path = tempfile.mkstemp(prefix=".cm_tmp_", dir=str(dest.parent))
+    tmp_fd, tmp_path = tempfile.mkstemp(prefix=".cm_tmp_", dir=parent_dir)
+    safe_tmp_str = os.path.abspath(tmp_path)
     try:
         with os.fdopen(tmp_fd, "wb") as f:
             f.write(data)
-        os.replace(tmp_path, str(dest))
+        os.replace(safe_tmp_str, dest_str)
     except Exception:
-        if os.path.exists(tmp_path):
+        if os.path.exists(safe_tmp_str):
             try:
-                os.remove(tmp_path)
+                os.remove(safe_tmp_str)
             except Exception:
                 pass
         raise
 
 
-def safe_atomic_write_text(destination: Path, text: str, encoding: str = "utf-8") -> None:
+def safe_atomic_write_text(destination: Path | str, text: str, encoding: str = "utf-8") -> None:
     """Safely write text to a file via atomic replacement."""
     safe_atomic_write_bytes(destination, text.encode(encoding, errors="replace"))
 
@@ -88,7 +95,6 @@ class FileCleaningReport:
     actions_performed: list[str] = field(default_factory=list)
     metadata_stripped: bool = False
     unicode_cleaned: bool = False
-    details: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -98,12 +104,16 @@ class FileCleaningReport:
 class BatchProcessSummary:
     """Summary of batch directory inspection or cleaning."""
     directory: str
-    total_files_scanned: int
-    supported_files_count: int
+    total_files_scanned: int = 0
+    supported_files_count: int = 0
     suspicious_count: int = 0
     cleaned_count: int = 0
     failed_count: int = 0
     file_reports: list[dict[str, Any]] = field(default_factory=list)
+
+    @property
+    def reports(self) -> list[dict[str, Any]]:
+        return self.file_reports
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

@@ -5,6 +5,7 @@ Author: Karthik R Shet (https://github.com/karthikrshet/ClaudeMark)
 
 from __future__ import annotations
 
+import os
 import struct
 from pathlib import Path
 from typing import Any
@@ -19,10 +20,10 @@ from .base import (
 
 def inspect_multimedia_file(file_path: Path | str) -> ProvenanceInspectionReport:
     """Inspect multimedia container (MP4, MOV, MP3, M4A) for metadata atoms and tags."""
-    file_path = validate_safe_path(file_path)
-    suffix = file_path.suffix.lower()
-    size = file_path.stat().st_size
-    data = file_path.read_bytes()
+    safe_path = validate_safe_path(file_path)
+    suffix = safe_path.suffix.lower()
+    data = safe_path.read_bytes()
+    size = len(data)
 
     has_metadata = False
     details: dict[str, Any] = {"format": suffix.lstrip(".")}
@@ -57,8 +58,8 @@ def inspect_multimedia_file(file_path: Path | str) -> ProvenanceInspectionReport
         details["has_id3v1"] = has_id3v1
 
     return ProvenanceInspectionReport(
-        file_path=str(file_path),
-        file_name=file_path.name,
+        file_path=str(safe_path),
+        file_name=safe_path.name,
         file_format=suffix.lstrip("."),
         file_size_bytes=size,
         suspicious=has_metadata,
@@ -76,13 +77,14 @@ def clean_multimedia_file(
     output_path: Path | str | None = None,
 ) -> FileCleaningReport:
     """Strip metadata atoms and ID3 tags from multimedia files atomically."""
-    input_path = validate_safe_path(input_path)
-    out = validate_safe_path(output_path) if output_path else input_path
+    safe_in = validate_safe_path(input_path)
+    safe_out = validate_safe_path(output_path) if output_path else safe_in
 
-    suffix = input_path.suffix.lower()
-    orig_size = input_path.stat().st_size
-    data = input_path.read_bytes()
+    suffix = safe_in.suffix.lower()
+    data = safe_in.read_bytes()
+    orig_size = len(data)
     actions: list[str] = []
+    cleaned_payload = data
 
     if suffix in (".mp4", ".mov", ".m4a"):
         pos = 0
@@ -108,7 +110,7 @@ def clean_multimedia_file(
             retained.append(box_data)
 
         cleaned_payload = b"".join(retained)
-        safe_atomic_write_bytes(out, cleaned_payload)
+        safe_atomic_write_bytes(safe_out, cleaned_payload)
 
     elif suffix == ".mp3":
         pos = 0
@@ -130,16 +132,16 @@ def clean_multimedia_file(
             actions.append("Stripped ID3v1 metadata trailer")
 
         cleaned_payload = data[pos:end_pos]
-        safe_atomic_write_bytes(out, cleaned_payload)
+        safe_atomic_write_bytes(safe_out, cleaned_payload)
 
     else:
-        safe_atomic_write_bytes(out, data)
+        safe_atomic_write_bytes(safe_out, data)
 
-    new_size = out.stat().st_size if out.is_file() else orig_size
+    new_size = len(cleaned_payload)
 
     return FileCleaningReport(
-        input_path=str(input_path),
-        output_path=str(out),
+        input_path=str(safe_in),
+        output_path=str(safe_out),
         file_format=suffix.lstrip("."),
         original_size_bytes=orig_size,
         cleaned_size_bytes=new_size,
