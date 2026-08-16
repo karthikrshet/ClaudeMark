@@ -1,6 +1,6 @@
 # ClaudeMark — Multi-AI Watermark & Provenance Forensics Toolkit
 # Container build for ClaudeMark service and CLI
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 LABEL maintainer="Karthik R Shet <https://github.com/karthikrshet>"
 LABEL org.opencontainers.image.source="https://github.com/karthikrshet/ClaudeMark"
