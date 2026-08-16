@@ -162,6 +162,45 @@ def clean_image_file(
         else:
             safe_atomic_write_bytes(out, data)
 
+    elif suffix in (".avif", ".heic", ".heif"):
+        # Process ISOBMFF box streams (AVIF / HEIC)
+        if len(data) >= 8:
+            pos = 0
+            boxes: list[tuple[bytes, bytes]] = []  # (box_type, box_bytes)
+            while pos < len(data):
+                if pos + 8 > len(data):
+                    break
+                box_len = struct.unpack(">I", data[pos:pos+4])[0]
+                box_type = data[pos+4:pos+8]
+                if box_len == 1:
+                    # Extended 64-bit length
+                    if pos + 16 > len(data):
+                        break
+                    box_len = struct.unpack(">Q", data[pos+8:pos+16])[0]
+                elif box_len == 0:
+                    # Extends to end of file
+                    box_len = len(data) - pos
+
+                if box_len <= 0 or pos + box_len > len(data):
+                    break
+
+                box_bytes = data[pos:pos+box_len]
+                pos += box_len
+
+                # Strip standalone top-level c2pa, Exif, or xml boxes
+                if box_type in (b"c2pa", b"Exif", b"xml ", b"uuid"):
+                    actions.append(f"Stripped ISOBMFF box: {box_type.decode('latin1', errors='replace')}")
+                    continue
+                boxes.append((box_type, box_bytes))
+
+            if boxes:
+                payload = b"".join(b[1] for b in boxes)
+                safe_atomic_write_bytes(out, payload)
+            else:
+                safe_atomic_write_bytes(out, data)
+        else:
+            safe_atomic_write_bytes(out, data)
+
     elif suffix == ".svg":
         raw_svg = data.decode("utf-8", errors="replace")
         clean_svg = _SVG_METADATA_RE.sub("", raw_svg)

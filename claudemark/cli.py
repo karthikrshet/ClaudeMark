@@ -574,11 +574,47 @@ def build_parser() -> argparse.ArgumentParser:
     p_exp.add_argument("--algorithm", "-a", default="claude", help="Detector to benchmark")
     p_exp.set_defaults(func=cmd_experimental)
 
+    # audit
+    p_audit = subparsers.add_parser("audit", help="Recursively audit directory tree for watermarks & provenance")
+    p_audit.add_argument("target", nargs="?", default=".", help="Directory to audit (default: .)")
+    p_audit.add_argument("--max-files", type=int, default=1000, help="Maximum files to scan")
+    p_audit.add_argument("--json", action="store_true", help="Output JSON audit report")
+    p_audit.set_defaults(func=cmd_audit)
+
     # version
     p_ver = subparsers.add_parser("version", help="Show ClaudeMark version and build info")
     p_ver.set_defaults(func=cmd_version)
 
     return parser
+
+def cmd_audit(args: argparse.Namespace) -> int:
+    from .provenance.audit import audit_directory
+
+    target = Path(args.target or ".").resolve()
+    rep = audit_directory(target, max_files=args.max_files)
+
+    if args.json:
+        print(json.dumps(rep.to_dict(), indent=2))
+    else:
+        print(f"ClaudeMark Recursive Forensic Audit: {target}")
+        print("═" * 60)
+        print(f"Total Files Scanned:      {rep.total_files_scanned}")
+        print(f"Suspicious Files:         {rep.total_suspicious_files}")
+        print(f"Unicode Anomalies Found:  {rep.total_unicode_anomalies}")
+        print(f"C2PA Manifests Detected:  {rep.total_c2pa_manifests}")
+        print(f"Security Threats Flagged: {rep.total_security_threats}")
+        if rep.findings:
+            print("\nFindings Detail:")
+            print("─" * 60)
+            for f in rep.findings:
+                print(f"[{f.confidence.upper()}] {f.finding_type} -> {Path(f.file_path).name}")
+                print(f"    Details: {f.details}")
+    return 0
+
+
+def cmd_version(args: argparse.Namespace) -> int:
+    print(f"ClaudeMark v{__version__} (Core Engine & Forensic Suite)")
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
