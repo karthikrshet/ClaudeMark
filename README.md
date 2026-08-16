@@ -1,20 +1,36 @@
+<div align="center">
+
 ```text
-   ____ _                 _      __  __            _    
-  / ___| | __ _ _   _  __| | ___|  \/  | __ _ _ __| | __
- | |   | |/ _` | | | |/ _` |/ _ \ |\/| |/ _` | '__| |/ /
- | |___| | (_| | |_| | (_| |  __/ |  | | (_| | |  |   < 
-  \____|_|\__,_|\__,_|\__,_|\___|_|  |_|\__,_|_|  |_|\_\
-  ======================================================
-  AI WATERMARK FORENSICS & PROVENANCE SANITIZATION SUITE
+ ╔══════════════════════════════════════════════════════════════════════╗
+ ║   ██████╗██╗      █████╗ ██╗   ██╗██████╗ ███████╗                   ║
+ ║  ██╔════╝██║     ██╔══██╗██║   ██║██╔══██╗██╔════╝                   ║
+ ║  ██║     ██║     ███████║██║   ██║██║  ██║█████╗                     ║
+ ║  ██║     ██║     ██╔══██║██║   ██║██║  ██║██╔══╝                     ║
+ ║  ╚██████╗███████╗██║  ██║╚██████╔╝██████╔╝███████╗                   ║
+ ║   ╚═════╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝                   ║
+ ║  ███╗   ███╗ █████╗ ██████╗ ██╗  ██╗                                 ║
+ ║  ████╗ ████║██╔══██╗██╔══██╗██║ ██╔╝   [ FORENSICS LAB ]             ║
+ ║  ██╔████╔██║███████║██████╔╝█████═╝    [ PROVENANCE PURIFIER ]       ║
+ ║  ██║╚██╔╝██║██╔══██║██╔══██╗██╔═██╗    [ ZERO-EGRESS HARDENED ]      ║
+ ║  ██║ ╚═╝ ██║██║  ██║██║  ██║██║ ╚██╗                                 ║
+ ║  ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝                                 ║
+ ║ ════════════════════════════════════════════════════════════════════ ║
+ ║     LOCAL-FIRST AI WATERMARK & CONTAINER PROVENANCE PLATFORM         ║
+ ╚══════════════════════════════════════════════════════════════════════╝
 ```
 
 # ClaudeMark
+
+**Scientific AI Watermark Forensics, Unicode Steganography Visualizer & Container Provenance Purifier**
 
 [![CI](https://github.com/karthikrshet/ClaudeMark/actions/workflows/ci.yml/badge.svg)](https://github.com/karthikrshet/ClaudeMark/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/karthikrshet/ClaudeMark)](https://github.com/karthikrshet/ClaudeMark/releases)
 [![Stars](https://img.shields.io/github/stars/karthikrshet/ClaudeMark)](https://github.com/karthikrshet/ClaudeMark/stargazers)
 [![Forks](https://img.shields.io/github/forks/karthikrshet/ClaudeMark)](https://github.com/karthikrshet/ClaudeMark/forks)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Platform: 100% Offline](https://img.shields.io/badge/Network-Zero--Egress-success.svg)](SECURITY.md)
+
+</div>
 
 ClaudeMark is a local-first, zero-egress forensics platform engineered to detect, visualize, disrupt, and sanitize AI watermarks, steganographic carriers, and container provenance from files and text you own.
 
