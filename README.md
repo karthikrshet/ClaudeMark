@@ -47,9 +47,30 @@ It unifies statistical text forensics and Unicode steganography visualization wi
 
 Vendors and ecosystems evaluated: **Claude (Anthropic research heuristics)**, **Gemini / SynthID-Text**, **OpenAI provenance surfaces**, **open-LLM Kirchenbauer-class schemes**.
 
-**Latest release:** [v2.0.0](https://github.com/karthikrshet/ClaudeMark/releases/tag/v2.0.0)  
-**Author & Maintainer:** [Karthik R Shet](https://github.com/karthikrshet)  
-**Repository:** [https://github.com/karthikrshet/ClaudeMark](https://github.com/karthikrshet/ClaudeMark)
+---
+
+## Why ClaudeMark?
+
+| Pillar | Focus | Capability |
+| :--- | :--- | :--- |
+| **Detection** | Statistical Research Signals | Entropy, burstiness, Kirchenbauer z-scores, and Claude heuristic signals |
+| **Forensics** | Unicode & Steganography | Renders invisible bytes as readable tags (`<ZWSP>`, `<BOM>`, `<RLO>`) |
+| **Inspection** | C2PA & Metadata | Manifest extraction, claim generators, software agents, and provenance trees |
+| **Sanitization** | Container Cleaning | Strips C2PA/EXIF/XMP from 12 document and image formats with atomic replacement |
+| **Security** | Defensive File Auditing | Scans for zip bombs ($100\times$ cap), malicious PDF actions, and VBA macros |
+| **Comparison** | Before/After Analysis | Quantifies score shifts, token divergence, and semantic preservation |
+| **Automation** | CLI, API & AI Agents | Unified single-binary CLI, local REST service, and native agent tools |
+
+---
+
+## Limitations
+
+ClaudeMark is a research and forensic analysis toolkit designed for authorized content you own.
+
+1. **Statistical signals do not prove AI authorship**: An elevated statistical signal reflects mathematical regularities, not definitive proof of authorship by a specific model or vendor.
+2. **No proprietary model access**: ClaudeMark does not claim access to proprietary model weights, private vendor watermark keys, or undocumented vendor detection APIs.
+3. **Disruption is best-effort**: Statistical watermark disruption is experimental. A reduced score indicates structural alteration, not a guarantee that a watermark has been erased or that another detector will classify the text differently.
+4. **Provenance presence vs. absence**: C2PA and metadata findings represent data present in the examined container; the absence of metadata does not prove that content is human-created or provenance-free.
 
 ---
 

@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 
-def install_skill(force: bool = False, target_env: str = "cursor") -> int:
+def install_skill(force: bool = False, target_env: str = "cursor", dry_run: bool = False) -> int:
     repo_root = Path(__file__).resolve().parent
     skill_src = repo_root / "skills" / "ai-forensics"
 
@@ -23,6 +23,10 @@ def install_skill(force: bool = False, target_env: str = "cursor") -> int:
         dest_dir = home / ".grok" / "skills" / "ai-forensics"
     else:
         dest_dir = home / ".claude" / "skills" / "ai-forensics"
+
+    if dry_run:
+        print(f"[Dry Run] Would stage skill from {skill_src} to {dest_dir}")
+        return 0
 
     if dest_dir.exists():
         if not force:
@@ -40,9 +44,10 @@ def install_skill(force: bool = False, target_env: str = "cursor") -> int:
 def main():
     parser = argparse.ArgumentParser(description="Install ClaudeMark agent skill")
     parser.add_argument("--force", "-f", action="store_true", help="Overwrite existing installation")
+    parser.add_argument("--dry-run", action="store_true", help="Simulate installation without writing files")
     parser.add_argument("--target", "-t", choices=["cursor", "grok", "claude"], default="cursor", help="Target agent host")
     args = parser.parse_args()
-    sys.exit(install_skill(force=args.force, target_env=args.target))
+    sys.exit(install_skill(force=args.force, target_env=args.target, dry_run=args.dry_run))
 
 
 if __name__ == "__main__":

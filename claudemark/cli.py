@@ -576,7 +576,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     # audit
     p_audit = subparsers.add_parser("audit", help="Recursively audit directory tree for watermarks & provenance")
-    p_audit.add_argument("target", nargs="?", default=".", help="Directory to audit (default: .)")
+    p_audit.add_argument("subcommand_or_target", nargs="?", default=".", help="Directory to audit, or 'dir'/'site'")
+    p_audit.add_argument("target_path", nargs="?", default=None, help="Target path when subcommand is specified")
     p_audit.add_argument("--max-files", type=int, default=1000, help="Maximum files to scan")
     p_audit.add_argument("--json", action="store_true", help="Output JSON audit report")
     p_audit.set_defaults(func=cmd_audit)
@@ -590,7 +591,8 @@ def build_parser() -> argparse.ArgumentParser:
 def cmd_audit(args: argparse.Namespace) -> int:
     from .provenance.audit import audit_directory
 
-    target = Path(args.target or ".").resolve()
+    raw_target = args.target_path if args.subcommand_or_target in ("dir", "directory") and args.target_path else args.subcommand_or_target
+    target = Path(raw_target or ".").resolve()
     rep = audit_directory(target, max_files=args.max_files)
 
     if args.json:
