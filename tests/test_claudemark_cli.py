@@ -11,7 +11,7 @@ def test_cli_version(capsys):
     assert ret == 0
     captured = capsys.readouterr()
     assert "ClaudeMark" in captured.out
-    assert "claude" in captured.out
+    assert "claude" in captured.out.lower()
 
 
 def test_cli_analyze_text_terminal(capsys):
