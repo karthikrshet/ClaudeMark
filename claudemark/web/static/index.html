@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ClaudeMark — Multi-AI Watermark & Provenance Forensics Toolkit</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-group">
+        <div class="logo-badge">CM</div>
+        <div>
+          <h1 class="logo-title">ClaudeMark</h1>
+          <p class="logo-subtitle">Multi-AI Watermark & Provenance Forensics Toolkit</p>
+        </div>
+      </div>
+      <div class="header-badges">
+        <span class="badge badge-privacy">🔒 Local-First / Private</span>
+        <span class="badge badge-version">v0.1.0 Multi-AI</span>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs">
+      <button class="tab-btn active" data-tab="tab-overview" id="tabBtnOverview">📊 Overview</button>
+      <button class="tab-btn" data-tab="tab-analyze" id="tabBtnAnalyze">🔍 Text Analyzer</button>
+      <button class="tab-btn" data-tab="tab-inspector" id="tabBtnInspector">📁 File Inspector</button>
+      <button class="tab-btn" data-tab="tab-cleaner" id="tabBtnCleaner">✨ Document Cleaner</button>
+      <button class="tab-btn" data-tab="tab-diff" id="tabBtnDiff">⚖️ Forensic Diff</button>
+      <button class="tab-btn" data-tab="tab-benchmarks" id="tabBtnBenchmarks">🧪 Benchmarks</button>
+    </nav>
+
+    <!-- Main Content Panels -->
+    <main class="main-content">
+      <!-- TAB 0: OVERVIEW -->
+      <section id="tab-overview" class="tab-panel active">
+        <div class="card">
+          <h2>Toolkit Status & Ecosystem Overview</h2>
+          <p class="section-desc">ClaudeMark provides local-first multi-AI watermark detection, Unicode steganography forensics, and C2PA / EXIF / XMP provenance stripping across 10 file formats.</p>
+          
+          <div class="metric-grid" style="margin-top: 1rem;">
+            <div class="metric-box">
+              <span class="metric-title">Active AI Detectors</span>
+              <span class="metric-value">4 Plug-in Engines</span>
+            </div>
+            <div class="metric-box">
+              <span class="metric-title">Document Formats</span>
+              <span class="metric-value">PDF, DOCX, ODT, HTML, MD, TXT</span>
+            </div>
+            <div class="metric-box">
+              <span class="metric-title">Image Formats</span>
+              <span class="metric-value">PNG, JPEG, WebP, SVG</span>
+            </div>
+            <div class="metric-box">
+              <span class="metric-title">Provenance Standards</span>
+              <span class="metric-value">C2PA, EXIF, XMP, IPTC</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 1: TEXT ANALYZER -->
+      <section id="tab-analyze" class="tab-panel">
+        <div class="editor-section card">
+          <div class="editor-header">
+            <label for="textInput" class="panel-label">Input Text for Forensic Analysis</label>
+            <div class="preset-controls">
+              <span class="preset-label">Sample Presets:</span>
+              <button class="btn-preset" id="presetClean">Clean Prose</button>
+              <button class="btn-preset" id="presetHidden">Zero-Width Marks</button>
+              <button class="btn-preset" id="presetAI">Statistical Sample</button>
+            </div>
+          </div>
+
+          <textarea id="textInput" placeholder="Paste or type text to inspect for statistical watermarks, zero-width steganography, and lexical anomalies..." rows="8"></textarea>
+
+          <div class="editor-footer">
+            <div class="char-counters">
+              <span id="liveCharCount">0 characters</span> | 
+              <span id="liveWordCount">0 words</span>
+            </div>
+            <div class="action-buttons">
+              <input type="file" id="fileLoader" style="display:none" accept=".txt,.md,.json,.html,.csv">
+              <button class="btn btn-secondary" id="btnLoadFile">📂 Load File</button>
+              <button class="btn btn-secondary" id="btnClear">🗑️ Clear</button>
+              <button class="btn btn-primary" id="btnAnalyze">🚀 Analyze Text</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Results Dashboard -->
+        <div id="resultsDashboard" class="results-dashboard" style="display: none;">
+          <!-- Card 1: Score & Confidence Gauge -->
+          <div class="card result-card score-card">
+            <div class="card-header">
+              <h3>Statistical Signal Score</h3>
+              <span id="statusBadge" class="status-pill">EVALUATING</span>
+            </div>
+            <div class="gauge-wrapper">
+              <div class="score-display">
+                <span id="scoreValue" class="score-number">0.00</span>
+                <span class="score-total">/ 1.00</span>
+              </div>
+              <div class="gauge-bar-track">
+                <div id="gaugeBarFill" class="gauge-bar-fill" style="width: 0%;"></div>
+              </div>
+              <div class="gauge-meta">
+                <span>Confidence: <strong id="confidenceValue">0%</strong></span>
+                <span>Threshold: <strong id="thresholdValue">0.65</strong></span>
+              </div>
+            </div>
+            <p id="interpretationText" class="interpretation-text">Analysis result will appear here.</p>
+          </div>
+
+          <!-- Card 2: Unicode Forensics -->
+          <div class="card result-card unicode-card">
+            <div class="card-header">
+              <h3>Unicode & Invisible Forensics</h3>
+              <span id="unicodeStatusBadge" class="status-pill">CLEAN</span>
+            </div>
+            <div class="metric-grid">
+              <div class="metric-box">
+                <span class="metric-title">Zero-Width Chars</span>
+                <span id="zwCount" class="metric-value">0</span>
+              </div>
+              <div class="metric-box">
+                <span class="metric-title">NBSP / Special Spaces</span>
+                <span id="nbspCount" class="metric-value">0</span>
+              </div>
+              <div class="metric-box">
+                <span class="metric-title">Control Characters</span>
+                <span id="ctrlCount" class="metric-value">0</span>
+              </div>
+              <div class="metric-box">
+                <span class="metric-title">BiDi Overrides</span>
+                <span id="bidiCount" class="metric-value">0</span>
+              </div>
+            </div>
+            <div id="anomalyList" class="anomaly-list"></div>
+          </div>
+
+          <!-- Card 3: Lexical & Text Stats -->
+          <div class="card result-card stats-card">
+            <div class="card-header">
+              <h3>Lexical & Surface Metrics</h3>
+            </div>
+            <div class="metric-grid">
+              <div class="metric-box">
+                <span class="metric-title">Sentences</span>
+                <span id="statSentences" class="metric-value">0</span>
+              </div>
+              <div class="metric-box">
+                <span class="metric-title">Avg Sentence Length</span>
+                <span id="statAvgSentLen" class="metric-value">0.0</span>
+              </div>
+              <div class="metric-box">
+                <span class="metric-title">Type-Token Ratio</span>
+                <span id="statTTR" class="metric-value">0.00</span>
+              </div>
+              <div class="metric-box">
+                <span class="metric-title">Shannon Entropy</span>
+                <span id="statEntropy" class="metric-value">0.00</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 4: Hypothesis -->
+          <div class="card result-card hypothesis-card">
+            <div class="card-header">
+              <h3>Hypothesis Testing & Disclaimers</h3>
+            </div>
+            <div class="hypothesis-body">
+              <p><strong>Null Hypothesis (H₀):</strong> <span id="nullHypo">Text is sampled from an unconstrained human distribution.</span></p>
+              <p><strong>Test Statistic (Z-Score):</strong> <span id="testStat">0.00</span> | <strong>P-Value:</strong> <span id="pValue">N/A</span></p>
+              <div class="alert-box">
+                ⚠️ <strong>Research Notice:</strong> This result is probabilistic and calculated from structural distributions. It does NOT constitute proof of model authorship.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: FILE INSPECTOR -->
+      <section id="tab-inspector" class="tab-panel">
+        <div class="card">
+          <h2>File & Document Provenance Inspector</h2>
+          <p class="section-desc">Inspect images, PDFs, Word docs, OpenDocument, HTML, and text files for C2PA manifests, EXIF metadata, XMP claims, and AI generator footprints.</p>
+          
+          <div class="file-upload-zone" id="inspectDropZone">
+            <input type="file" id="fileInspectInput" style="display:none">
+            <div class="upload-prompt">
+              <span>📄 Drag & Drop a file here, or <button class="btn btn-secondary" id="btnBrowseInspect">Browse File</button></span>
+              <p class="upload-subtext">Supported: PNG, JPEG, WebP, SVG, PDF, DOCX, ODT, HTML, Markdown, TXT</p>
+            </div>
+          </div>
+
+          <div id="fileInspectResults" style="display: none; margin-top: 1.5rem;">
+            <div class="card-header">
+              <h3 id="inspectFileName">File Report</h3>
+              <span id="inspectStatusBadge" class="status-pill">CLEAN</span>
+            </div>
+            <div class="metric-grid">
+              <div class="metric-box">
+                <span class="metric-title">C2PA Manifest</span>
+                <span id="inspectC2pa" class="metric-value">NO</span>
+              </div>
+              <div class="metric-box">
+                <span class="metric-title">EXIF / XMP Metadata</span>
+                <span id="inspectExif" class="metric-value">NO</span>
+              </div>
+              <div class="metric-box">
+                <span class="metric-title">AI Metadata Footprints</span>
+                <span id="inspectAi" class="metric-value">NO</span>
+              </div>
+              <div class="metric-box">
+                <span class="metric-title">Unicode Anomalies</span>
+                <span id="inspectUnicode" class="metric-value">0</span>
+              </div>
+            </div>
+            <div class="json-preview-container" style="margin-top: 1rem;">
+              <pre><code id="inspectJsonPreview"></code></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: DOCUMENT CLEANER -->
+      <section id="tab-cleaner" class="tab-panel">
+        <div class="card">
+          <h2>Document & Image Cleaner</h2>
+          <p class="section-desc">Strip AI provenance metadata, EXIF/XMP tags, and invisible steganographic watermarks from files.</p>
+          
+          <div class="file-upload-zone" id="cleanDropZone">
+            <input type="file" id="fileCleanInput" style="display:none">
+            <div class="upload-prompt">
+              <span>🧹 Select or Drop a file to clean: <button class="btn btn-secondary" id="btnBrowseClean">Browse File</button></span>
+            </div>
+          </div>
+
+          <div id="cleanResultsArea" style="display: none; margin-top: 1.5rem;">
+            <div class="metric-grid">
+              <div class="metric-box">
+                <span class="metric-title">Original Size</span>
+                <span id="cleanOrigSize" class="metric-value">0 KB</span>
+              </div>
+              <div class="metric-box">
+                <span class="metric-title">Cleaned Size</span>
+                <span id="cleanNewSize" class="metric-value">0 KB</span>
+              </div>
+              <div class="metric-box">
+                <span class="metric-title">Metadata Stripped</span>
+                <span class="metric-value" style="color: var(--color-success);">YES</span>
+              </div>
+              <div class="metric-box">
+                <span class="metric-title">Action Status</span>
+                <span class="metric-value" style="color: var(--color-success);">SUCCESS</span>
+              </div>
+            </div>
+            <div class="pane-actions" style="margin-top: 1rem;">
+              <a id="btnDownloadCleaned" class="btn btn-primary" download>⬇️ Download Cleaned File</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: FORENSIC DIFF -->
+      <section id="tab-diff" class="tab-panel">
+        <div class="card">
+          <h2>Forensic Text Comparison (Diff)</h2>
+          <p class="section-desc">Compare original text against normalized or rewritten text to measure anomaly removal and statistical delta.</p>
+          
+          <div class="diff-grid">
+            <div class="diff-pane">
+              <label for="diffOriginal">Original Text</label>
+              <textarea id="diffOriginal" rows="7" placeholder="Paste original text here..."></textarea>
+            </div>
+            <div class="diff-pane">
+              <label for="diffProcessed">Processed / Cleaned Text</label>
+              <textarea id="diffProcessed" rows="7" placeholder="Paste processed text here..."></textarea>
+            </div>
+          </div>
+
+          <div class="pane-actions">
+            <button class="btn btn-primary" id="btnRunDiff">⚖️ Compare Texts</button>
+          </div>
+
+          <div id="diffResultsArea" class="diff-results-area" style="display: none;">
+            <div class="metric-grid">
+              <div class="metric-box">
+                <span class="metric-title">Character Delta</span>
+                <span id="diffCharDelta" class="metric-value">0</span>
+              </div>
+              <div class="metric-box">
+                <span class="metric-title">Anomalies Eliminated</span>
+                <span id="diffAnomaliesRemoved" class="metric-value">0</span>
+              </div>
+              <div class="metric-box">
+                <span class="metric-title">Text Similarity</span>
+                <span id="diffSimilarity" class="metric-value">100%</span>
+              </div>
+              <div class="metric-box">
+                <span class="metric-title">Signal Delta</span>
+                <span id="diffScoreDelta" class="metric-value">0.00</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: BENCHMARKS -->
+      <section id="tab-benchmarks" class="tab-panel">
+        <div class="card">
+          <h2>Research Calibration & Benchmarks</h2>
+          <div class="about-content">
+            <h3>Empirical Calibration</h3>
+            <p>ClaudeMark includes parameter sweep tooling to evaluate False Positive Rates (FPR) and True Positive Rates (TPR) against human prose versus synthetic model outputs.</p>
+
+            <h3>Benchmark Corpora Setup</h3>
+            <p>Place reference datasets in <code>benchmarks/human/</code> and <code>benchmarks/synthetic/</code>, then execute:</p>
+            <pre><code>python benchmarks/baseline_runner.py --human benchmarks/human --synthetic benchmarks/synthetic</code></pre>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>ClaudeMark v0.1.0 — Multi-AI Watermark & Provenance Forensics Toolkit | Maintained by <a href="https://github.com/karthikrshet" target="_blank" rel="noopener">Karthik R Shet</a></p>
+    </footer>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
