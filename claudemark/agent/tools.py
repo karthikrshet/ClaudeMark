@@ -114,6 +114,14 @@ AGENT_TOOLS_MANIFEST: list[dict[str, Any]] = [
 ]
 
 
+def _resolve_agent_path(raw_path: str) -> Path:
+    """Safely sanitize agent path against directory traversal."""
+    cleaned = str(raw_path or "").strip()
+    if not cleaned or "\x00" in cleaned:
+        raise ValueError("Invalid agent path argument")
+    return validate_safe_path(cleaned)
+
+
 def execute_agent_tool(tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
     """Execute an agent tool invocation locally with zero network egress."""
     if tool_name == "analyze_watermark":
@@ -136,13 +144,13 @@ def execute_agent_tool(tool_name: str, arguments: dict[str, Any]) -> dict[str, A
         return data
 
     elif tool_name == "inspect_provenance":
-        f_path = validate_safe_path(arguments.get("file_path", ""))
+        f_path = _resolve_agent_path(arguments.get("file_path", ""))
         rep = inspect_single_file(f_path)
         return rep.to_dict()
 
     elif tool_name == "clean_file":
-        in_p = validate_safe_path(arguments.get("input_path", ""))
-        out_p = validate_safe_path(arguments["output_path"]) if arguments.get("output_path") else None
+        in_p = _resolve_agent_path(arguments.get("input_path", ""))
+        out_p = _resolve_agent_path(arguments["output_path"]) if arguments.get("output_path") else None
         rep = clean_single_file(in_p, out_p)
         return rep.to_dict()
 
@@ -153,13 +161,13 @@ def execute_agent_tool(tool_name: str, arguments: dict[str, Any]) -> dict[str, A
         return res.to_dict()
 
     elif tool_name == "scan_security":
-        f_path = validate_safe_path(arguments.get("file_path", ""))
+        f_path = _resolve_agent_path(arguments.get("file_path", ""))
         rep = scan_file_security(f_path)
         return rep.to_dict()
 
     elif tool_name == "audit_directory":
         from ..provenance.audit import audit_directory
-        target = validate_safe_path(arguments.get("path", "."))
+        target = _resolve_agent_path(arguments.get("path", "."))
         max_f = int(arguments.get("max_files", 1000))
         rep = audit_directory(target, max_files=max_f)
         return rep.to_dict()
