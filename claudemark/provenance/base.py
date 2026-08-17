@@ -9,46 +9,45 @@ from pathlib import Path
 from typing import Any
 
 
+import shutil
+
 def validate_safe_path(p: Path | str, base_dir: Path | str | None = None) -> Path:
     """Validate and sanitize file path to prevent arbitrary path traversal and injection."""
     raw = str(p).strip()
-    if "\x00" in raw:
-        raise ValueError("Illegal null byte in file path")
+    if not raw or "\x00" in raw:
+        raise ValueError("Invalid file path")
 
-    # Resolve symlinks and normalize to absolute path
-    resolved_path = Path(raw).resolve()
+    norm = os.path.normpath(raw)
+    abs_path = os.path.abspath(norm)
 
     if base_dir is not None:
-        resolved_base = Path(base_dir).resolve()
-        try:
-            resolved_path.relative_to(resolved_base)
-        except ValueError:
-            raise ValueError(f"Path traversal detected: {resolved_path} is outside {resolved_base}")
+        base_abs = os.path.abspath(str(base_dir))
+        if not abs_path.startswith(base_abs + os.sep) and abs_path != base_abs:
+            raise ValueError(f"Path traversal detected: {abs_path} outside {base_abs}")
 
-    return resolved_path
+    return Path(abs_path)
 
 
 def safe_atomic_write_bytes(destination: Path | str, data: bytes) -> None:
     """Safely write bytes to a file via a temporary file and atomic replace."""
     safe_dest = validate_safe_path(destination)
-    parent_dir = safe_dest.parent.resolve()
-    parent_dir.mkdir(parents=True, exist_ok=True)
+    dest_str = os.path.abspath(str(safe_dest))
+    parent_dir = os.path.dirname(dest_str)
+    if parent_dir:
+        os.makedirs(parent_dir, exist_ok=True)
 
-    # Remove existing symlinks to prevent symlink hijacking
-    if safe_dest.is_symlink():
-        safe_dest.unlink()
+    if os.path.islink(dest_str):
+        os.unlink(dest_str)
 
-    # Create temporary file inside parent directory for safe atomic swap
-    tmp_fd, tmp_path_str = tempfile.mkstemp(prefix=".cm_tmp_", dir=str(parent_dir))
-    tmp_path = Path(tmp_path_str).resolve()
+    tmp_fd, tmp_path = tempfile.mkstemp(prefix=".cm_tmp_", dir=tempfile.gettempdir())
     try:
         with os.fdopen(tmp_fd, "wb") as f:
             f.write(data)
-        os.replace(str(tmp_path), str(safe_dest))
+        shutil.move(tmp_path, dest_str)
     except Exception:
-        if tmp_path.exists():
+        if os.path.exists(tmp_path):
             try:
-                tmp_path.unlink()
+                os.remove(tmp_path)
             except Exception:
                 pass
         raise
