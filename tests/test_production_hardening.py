@@ -234,3 +234,123 @@ class TestDynamicJsonReportVersion:
         data = json.loads(report_json)
         assert data["version"] == claudemark.__version__
         assert data["version"] != "0.1.0"
+
+
+class TestSelfTestAndV22Hardenings:
+    """Test 9-point self-test diagnostic, escaped CLI input, and C2PA precision."""
+
+    def test_run_selftest_passes(self) -> None:
+        from claudemark.core.selftest import run_selftest
+        report = run_selftest()
+        assert report.overall_status == "PASS"
+        assert report.passed_checks == 9
+        assert report.failed_checks == 0
+        assert len(report.steps) == 9
+
+    def test_cli_selftest_command(self, capsys: pytest.CaptureFixture[str]) -> None:
+        code = main(["selftest"])
+        assert code == 0
+        captured = capsys.readouterr()
+        assert "SYSTEM VERIFIED" in captured.out
+        assert "9/9 checks passed" in captured.out
+
+    def test_cli_text_escaped_flag(self, capsys: pytest.CaptureFixture[str]) -> None:
+        code = main(["unicode", "inspect", "--text-escaped", r"Test\u200bData\ufeff", "--json"])
+        assert code == 0
+        captured = capsys.readouterr()
+        data = json.loads(captured.out)
+        assert data["total_anomalies"] == 2
+        assert data["has_anomalies"] is True
+
+    def test_markdown_c2pa_reference_is_not_manifest(self, tmp_path: Path) -> None:
+        path = tmp_path / "README.md"
+        path.write_text("ClaudeMark supports C2PA Content Credentials.", encoding="utf-8")
+        result = claudemark.inspect_provenance(path)
+        assert result.has_c2pa is False
+        assert result.confidence == "informational"
+
+    def test_real_c2pa_manifest_is_confirmed(self, tmp_path: Path) -> None:
+        # Create deterministic PNG fixture with embedded c2pa chunk
+        c2pa_file = tmp_path / "fixture_c2pa.png"
+        png_sig = b"\x89PNG\r\n\x1a\n"
+        ihdr = b"\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89"
+        c2pa_chunk = b"\x00\x00\x00\x04c2pa1234\x00\x00\x00\x00"
+        iend = b"\x00\x00\x00\x00IEND\xaeB`\x82"
+        c2pa_file.write_bytes(png_sig + ihdr + c2pa_chunk + iend)
+
+        result = claudemark.inspect_provenance(c2pa_file)
+        assert result.has_c2pa is True
+        assert result.confidence == "confirmed"
+
+    def test_benchmark_suite_non_empty_f1(self) -> None:
+        from claudemark.core.benchmarks import run_benchmark_suite
+        res = run_benchmark_suite(reproduce=True)
+        assert res.total_samples > 0
+        assert hasattr(res, "benchmark_dataset_version")
+        assert hasattr(res, "benchmark_dataset_hash")
+        claude_m = next(m for m in res.metrics if m.detector_name == "claude")
+        assert claude_m.recall > 0.0
+        assert claude_m.f1_score > 0.0
+
+    def test_experimental_sweep_evaluates_samples(self) -> None:
+        from claudemark.watermark.experimental import run_parameter_sweep
+        sweep = run_parameter_sweep()
+        assert len(sweep.evaluations) > 0
+        assert sweep.evaluations[0].f1_score > 0.0
+
+    def test_server_ready_and_version_endpoints(self, running_claudemark_server: str) -> None:
+        import urllib.request
+        # Test /ready
+        with urllib.request.urlopen(f"{running_claudemark_server}/ready") as resp:
+            assert resp.status == 200
+            data = json.loads(resp.read().decode("utf-8"))
+            assert data["status"] == "ready"
+            assert data["version"] == "2.2.0"
+            assert "detectors" in data
+
+        # Test /version
+        with urllib.request.urlopen(f"{running_claudemark_server}/version") as resp:
+            assert resp.status == 200
+            data = json.loads(resp.read().decode("utf-8"))
+            assert data["version"] == "2.2.0"
+            assert data["zero_egress"] is True
+
+        # Test /favicon.ico (204 No Content)
+        with urllib.request.urlopen(f"{running_claudemark_server}/favicon.ico") as resp:
+            assert resp.status == 204
+
+    def test_server_unknown_tool_error(self, running_claudemark_server: str) -> None:
+        import urllib.request
+        import urllib.error
+        payload = json.dumps({"tool": "non_existent_tool", "args": {}}).encode("utf-8")
+        req = urllib.request.Request(
+            f"{running_claudemark_server}/api/agent/exec",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with pytest.raises(urllib.error.HTTPError) as exc:
+            urllib.request.urlopen(req)
+        assert exc.value.code == 400
+        data = json.loads(exc.value.read().decode("utf-8"))
+        assert data["ok"] is False
+        assert data["error"]["code"] == "UNKNOWN_TOOL"
+
+    def test_server_invalid_threshold_error(self, running_claudemark_server: str) -> None:
+        import urllib.request
+        import urllib.error
+        payload = json.dumps({"text": "Sample text", "threshold": 2.5}).encode("utf-8")
+        req = urllib.request.Request(
+            f"{running_claudemark_server}/api/analyze",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with pytest.raises(urllib.error.HTTPError) as exc:
+            urllib.request.urlopen(req)
+        assert exc.value.code == 400
+        data = json.loads(exc.value.read().decode("utf-8"))
+        assert data["ok"] is False
+        assert data["error"]["code"] == "INVALID_ARGUMENT"
+
+

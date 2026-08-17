@@ -22,6 +22,7 @@ if hasattr(sys.stderr, "reconfigure"):
         pass
 
 from . import __author__, __version__, analyze_text, compute_forensic_diff, normalize_text
+from .core.constants import MAX_INPUT_BYTES, MAX_TEXT_LENGTH
 from .core.normalizer import NormalizationOptions
 from .core.unicode_forensics import analyze_unicode_forensics, visualize_unicode_markers
 from .detectors.registry import detector_registry
@@ -36,11 +37,23 @@ from .reports.markdown_report import format_markdown_report
 from .reports.terminal import format_terminal_diff, format_terminal_report
 from .watermark.experimental import run_parameter_sweep
 
-MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024  # 100 MB
+MAX_FILE_SIZE_BYTES = MAX_INPUT_BYTES
 
 
-def _read_input(file_path: str | None, raw_text: str | None) -> tuple[str, str]:
-    """Read text from file, string argument, or stdin securely."""
+def _read_input(
+    file_path: str | None,
+    raw_text: str | None,
+    raw_escaped_text: str | None = None,
+) -> tuple[str, str]:
+    """Read text from file, string argument, explicit escaped string, or stdin securely."""
+    if raw_escaped_text is not None:
+        try:
+            # Decode literal \u200b or \x escape sequences cleanly
+            decoded = raw_escaped_text.encode("utf-8").decode("unicode_escape")
+            return decoded, "<escaped_text>"
+        except Exception:
+            return raw_escaped_text, "<raw_text>"
+
     if raw_text is not None:
         return raw_text, "<raw_text>"
 
@@ -61,7 +74,7 @@ def _read_input(file_path: str | None, raw_text: str | None) -> tuple[str, str]:
     if not sys.stdin.isatty():
         return sys.stdin.read(MAX_FILE_SIZE_BYTES), "<stdin>"
 
-    sys.stderr.write("Error: No input provided. Specify a file or pass --text.\n")
+    sys.stderr.write("Error: No input provided. Specify a file or pass --text / --text-escaped.\n")
     sys.exit(1)
 
 
@@ -76,7 +89,7 @@ def _write_output(content: str, out_path: str | None) -> None:
 
 
 def cmd_analyze(args: argparse.Namespace) -> int:
-    text, source_name = _read_input(args.file, args.text)
+    text, source_name = _read_input(args.file, args.text, getattr(args, "text_escaped", None))
     res = analyze_text(text, detector_name=args.algorithm, threshold=args.threshold)
     
     stats = res["text_statistics"]
@@ -248,7 +261,7 @@ def cmd_diff(args: argparse.Namespace) -> int:
 
 
 def cmd_unicode(args: argparse.Namespace) -> int:
-    text, source_name = _read_input(args.file, args.text)
+    text, source_name = _read_input(args.file, args.text, getattr(args, "text_escaped", None))
     op = args.operation
 
     if op == "inspect":
@@ -282,7 +295,7 @@ def cmd_unicode(args: argparse.Namespace) -> int:
 
 
 def cmd_rewrite(args: argparse.Namespace) -> int:
-    text, source_name = _read_input(args.file, args.text)
+    text, source_name = _read_input(args.file, args.text, getattr(args, "text_escaped", None))
     from .rewrite.paraphrase import disrupt_watermark
 
     res = disrupt_watermark(text, strategy=args.strategy, detector_name=args.algorithm)
@@ -357,11 +370,20 @@ def cmd_agent(args: argparse.Namespace) -> int:
             sys.stderr.write("Error: Specify tool via --tool <name> or as a positional argument.\n")
             sys.stderr.write("Example: claudemark agent exec --tool analyze_watermark --args '{\"text\":\"sample\"}'\n")
             return 1
+
+        raw_args = args.args or "{}"
         try:
-            arguments = json.loads(args.args) if args.args else {}
-        except json.JSONDecodeError as e:
-            sys.stderr.write(f"Error: Invalid JSON in --args: {e}\n")
-            return 1
+            arguments = json.loads(raw_args)
+        except Exception:
+            try:
+                import ast
+                arguments = ast.literal_eval(raw_args)
+                if not isinstance(arguments, dict):
+                    arguments = {}
+            except Exception as e:
+                sys.stderr.write(f"Error: Invalid JSON in --args: {e}\n")
+                return 1
+
         res = execute_agent_tool(tool_name, arguments)
         print(json.dumps(res, indent=2))
 
@@ -517,6 +539,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_analyze = subparsers.add_parser("analyze", help="Analyze text for watermark signals & Unicode forensics")
     p_analyze.add_argument("file", nargs="?", default=None, help="Input text file path (or - for stdin)")
     p_analyze.add_argument("--text", "-t", default=None, help="Direct text string to analyze")
+    p_analyze.add_argument("--text-escaped", default=None, help="Explicit Unicode-escaped text string (e.g. 'Hello\\u200bWorld')")
     p_analyze.add_argument("--json", action="store_true", help="Output machine-readable JSON")
     p_analyze.add_argument("--markdown", action="store_true", help="Output GitHub-flavored Markdown")
     p_analyze.add_argument("--verbose", "-v", action="store_true", help="Include full hypothesis testing")
@@ -540,6 +563,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_uni.add_argument("operation", choices=["inspect", "visualize", "normalize", "clean"], help="Operation to run")
     p_uni.add_argument("file", nargs="?", default=None, help="Target text file")
     p_uni.add_argument("--text", "-t", default=None, help="Direct text string")
+    p_uni.add_argument("--text-escaped", default=None, help="Explicit Unicode-escaped text string (e.g. 'Hello\\u200bWorld')")
     p_uni.add_argument("--json", action="store_true", help="Output JSON report")
     p_uni.add_argument("--output", "-o", default=None, help="Destination output file")
     p_uni.set_defaults(func=cmd_unicode)
@@ -548,6 +572,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_rw = subparsers.add_parser("rewrite", help="Best-effort statistical watermark disruption through text restructuring")
     p_rw.add_argument("file", nargs="?", default=None, help="Target text file")
     p_rw.add_argument("--text", "-t", default=None, help="Direct text string")
+    p_rw.add_argument("--text-escaped", default=None, help="Explicit Unicode-escaped text string (e.g. 'Hello\\u200bWorld')")
     p_rw.add_argument("--strategy", choices=["synonym_cadence", "cadence_only"], default="synonym_cadence", help="Disruption strategy")
     p_rw.add_argument("--algorithm", "-a", default="claude", help="Detector to evaluate disruption against")
     p_rw.add_argument("--json", action="store_true", help="Output JSON evaluation")
@@ -589,6 +614,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_norm = subparsers.add_parser("normalize", help="Safely strip invisible characters & normalize text")
     p_norm.add_argument("file", nargs="?", default=None, help="Input text file path (or - for stdin)")
     p_norm.add_argument("--text", "-t", default=None, help="Direct text string to normalize")
+    p_norm.add_argument("--text-escaped", default=None, help="Explicit Unicode-escaped text string (e.g. 'Hello\\u200bWorld')")
     p_norm.add_argument("--json", action="store_true", help="Output JSON normalization details")
     p_norm.add_argument("--keep-zero-width", action="store_true", help="Do not remove zero-width characters")
     p_norm.add_argument("--keep-special-spaces", action="store_true", help="Do not replace non-breaking spaces")
@@ -624,6 +650,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_doc.add_argument("--json", action="store_true", help="Output JSON diagnostic report")
     p_doc.set_defaults(func=cmd_doctor)
 
+    # selftest
+    p_st = subparsers.add_parser("selftest", help="Run 9-point self-test diagnostic release gate")
+    p_st.add_argument("--json", action="store_true", help="Output JSON diagnostic report")
+    p_st.set_defaults(func=cmd_selftest)
+
     # benchmark
     p_bm = subparsers.add_parser("benchmark", help="Run reproducible scientific benchmark evaluation matrix")
     p_bm.add_argument("--reproduce", action="store_true", default=True, help="Run standard deterministic benchmark suite")
@@ -641,6 +672,16 @@ def build_parser() -> argparse.ArgumentParser:
     p_ver.set_defaults(func=cmd_version)
 
     return parser
+
+def cmd_selftest(args: argparse.Namespace) -> int:
+    from .core.selftest import print_selftest_report, run_selftest
+    report = run_selftest()
+    if args.json:
+        print(json.dumps(report.to_dict(), indent=2))
+    else:
+        print_selftest_report(report)
+    return 0 if report.overall_status == "PASS" else 1
+
 
 def cmd_doctor(args: argparse.Namespace) -> int:
     from .core.doctor import print_doctor_report, run_doctor_diagnostics

@@ -41,7 +41,7 @@ from .watermark.base import WatermarkAnalyzer, WatermarkResult
 from .watermark.claude_detector import ClaudeWatermarkAnalyzer
 from .watermark.registry import registry
 
-__version__ = "2.1.0"
+__version__ = "2.2.0"
 __author__ = "Karthik R Shet"
 
 
@@ -93,15 +93,19 @@ def analyze_text(
     }
 
 
+inspect_provenance = inspect_single_file
+
 __all__ = [
     "__version__",
     "__author__",
     "analyze_text",
     "normalize_text",
+    "normalize_text_str",
     "compute_forensic_diff",
     "analyze_text_statistics",
     "analyze_unicode_forensics",
     "inspect_single_file",
+    "inspect_provenance",
     "clean_single_file",
     "batch_inspect",
     "batch_clean",

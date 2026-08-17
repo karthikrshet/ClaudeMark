@@ -61,16 +61,24 @@ def inspect_multimedia_file(file_path: "Path | str") -> ProvenanceInspectionRepo
         details["has_id3v2"] = has_id3v2
         details["has_id3v1"] = has_id3v1
 
+    has_c2pa = "c2pa" in details.get("metadata_boxes", [])
+    confidence = "none"
+    if has_c2pa:
+        confidence = "confirmed"
+    elif has_metadata:
+        confidence = "probable"
+
     return ProvenanceInspectionReport(
         file_path=str(safe_path),
         file_name=safe_path.name,
         file_format=suffix.lstrip("."),
         file_size_bytes=size,
         suspicious=has_metadata,
-        has_c2pa="c2pa" in details.get("metadata_boxes", []),
+        has_c2pa=has_c2pa,
         has_exif=False,
         has_xmp="XMP_" in details.get("metadata_boxes", []),
         has_ai_metadata=has_metadata,
+        confidence=confidence,
         details=details,
         summary=f"Multimedia ({suffix.lstrip('.').upper()}): {'Metadata atoms / tags present' if has_metadata else 'Clean container'}",
     )

@@ -69,31 +69,28 @@ def safe_atomic_write_bytes(destination: "Path | str", data: bytes) -> None:
     The destination path is validated through :func:`validate_safe_path` before
     any filesystem interaction occurs. The temporary file is created in the
     system's temp directory, written fully, then moved to the destination in a
-    single ``shutil.move`` call — ensuring partial writes never corrupt the
-    target file.
+    single atomic operation — ensuring partial writes never corrupt the target.
     """
     safe_dest = validate_safe_path(destination)
-    # Re-derive dest_str from the already-validated Path to avoid re-tainting
-    dest_str = str(safe_dest)
 
-    parent_dir = os.path.dirname(dest_str)
-    if parent_dir:
-        os.makedirs(parent_dir, exist_ok=True)
+    # Ensure parent directory exists safely
+    safe_dest.parent.mkdir(parents=True, exist_ok=True)
 
     # Remove symlinks to prevent symlink-swap attacks
-    if os.path.islink(dest_str):
-        os.unlink(dest_str)
+    if safe_dest.is_symlink():
+        safe_dest.unlink()
 
-    # Write to a temp file then atomically rename into place
-    tmp_fd, tmp_path = tempfile.mkstemp(prefix=".cm_tmp_", dir=tempfile.gettempdir())
+    # Write to a temporary file then atomically replace into destination
+    tmp_fd, tmp_path_str = tempfile.mkstemp(prefix=".cm_tmp_", dir=tempfile.gettempdir())
+    tmp_path = Path(tmp_path_str)
     try:
         with os.fdopen(tmp_fd, "wb") as f:
             f.write(data)
-        shutil.move(tmp_path, dest_str)
+        shutil.move(str(tmp_path), str(safe_dest))
     except Exception:
-        if os.path.exists(tmp_path):
+        if tmp_path.exists():
             try:
-                os.remove(tmp_path)
+                tmp_path.unlink()
             except OSError:
                 pass
         raise
@@ -118,6 +115,7 @@ class ProvenanceInspectionReport:
     has_xmp: bool = False
     has_ai_metadata: bool = False
     suspicious: bool = False
+    confidence: str = "informational"  # "confirmed" | "probable" | "informational" | "none"
     unicode_anomalies: int = 0
     statistical_score: float = 0.0
     details: dict[str, Any] = field(default_factory=dict)
