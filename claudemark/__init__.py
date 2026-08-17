@@ -45,24 +45,46 @@ __version__ = "2.1.0"
 __author__ = "Karthik R Shet"
 
 
+def normalize_text_str(
+    text: str,
+    options: "NormalizationOptions | None" = None,
+) -> str:
+    """Normalize text and return a plain string (convenience wrapper).
+
+    Unlike :func:`normalize_text` which returns a :class:`NormalizationResult`
+    dataclass, this function returns the normalized text directly as a string,
+    suitable for immediate string operations.
+
+    Args:
+        text: Input text to normalize.
+        options: Optional :class:`NormalizationOptions`; uses defaults if omitted.
+
+    Returns:
+        Normalized plain string with invisible characters stripped.
+    """
+    from .core.normalizer import NormalizationOptions as _Opts
+    result = normalize_text(text, options or _Opts())
+    return result.normalized_text
+
+
 def analyze_text(
     text: str,
     detector_name: str | None = None,
     threshold: float | None = None,
-) -> dict[str, Any]:
+) -> "dict[str, Any]":
     """High-level one-shot analysis returning text statistics, Unicode forensics,
     sentence heatmap, and statistical watermark evaluation.
     """
     stats = analyze_text_statistics(text)
     unicode_rep = analyze_unicode_forensics(text)
     heatmap = compute_sentence_heatmap(text)
-    
+
     detector = detector_registry.get(detector_name)
     if threshold is not None:
         detector.threshold = threshold
-        
+
     wm_res = detector.detect(text)
-    
+
     return {
         "text_statistics": stats,
         "unicode_forensics": unicode_rep,

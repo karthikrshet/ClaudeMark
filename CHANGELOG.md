@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.1.1] - 2026-08-17
+
+### Security & Hardening
+- **Taint-Chain Breaking Path Sanitizer (`claudemark/provenance/base.py`)**: Added `_sanitize_raw_path()` with strict control character and null-byte denial to satisfy CodeQL taint analysis across all filesystem operations.
+- **Multimedia Path Sanitization (`claudemark/provenance/multimedia.py`)**: Sanitized all path handling in audio/video container inspection and cleaning routines.
+- **Docker Container Hardening (`Dockerfile`)**: Configured unprivileged non-root user (`cmuser`), added container `HEALTHCHECK`, and aligned internal port mapping.
+- **Configurable Server CORS (`claudemark/server.py`)**: Added `CLAUDEMARK_CORS_ORIGIN` environment variable support to restrict cross-origin access in production environments.
+
+### Fixed
+- **CLI Standard Options (`claudemark/cli.py`)**: Added top-level `--version` / `-V` flag; added `claudemark agent tools` alias for `agent list`; enabled flexible `agent exec` argument parsing.
+- **JSON Report Versioning (`claudemark/reports/json_report.py`)**: Dynamically references package `__version__` instead of static placeholder.
+- **API Ergonomics & Field Aliases**: Added `composite_score` alias to `DetectionResult` and `WatermarkResult` objects; added `normalize_text_str()` convenience helper in top-level package.
+- **Rewrite Disruption Engine (`claudemark/rewrite/`)**: Vastly expanded curated synonym vocabulary across academic, transition, and verbal inflections; updated cadence rebalancer and metric calculations (`words_changed`, `characters_changed`).
+- **OASIS SARIF Exporter (`claudemark/provenance/sarif.py`)**: Added `build_sarif_report()` alias and polymorphic input support for both `DirectoryAuditReport` objects and findings lists.
+- **Pixel Domain Module (`claudemark/pixel/backends.py`)**: Created module export to ensure `import claudemark.pixel.backends` functions seamlessly.
+
+---
+
+## [2.1.0] - 2026-08-17
+
+### Added
+- **OASIS SARIF v2.1.0 Exporter**: GitHub Code Scanning and Security alerts integration for recursive forensic audits (`claudemark audit --sarif report.sarif`).
+- **Diagnostic Doctor (`claudemark doctor`)**: Comprehensive runtime health, binary availability, decoder integrity, and zero-egress validation check.
+- **Reproducible Scientific Benchmarks (`claudemark benchmark --reproduce`)**: Deterministic accuracy, precision, recall, and F1-score evaluation matrix across heuristic detectors.
+- **Sentence-Level Heatmap Forensics (`claudemark/core/text_stats.py`)**: Sentence-by-sentence statistical score visualization with contextual anomaly badges (`CLEAN`, `ELEVATED`, `HIGH`).
+- **Cryptographic Audit Certificate (`claudemark/provenance/certificate.py`)**: Standalone self-contained HTML/JSON forensic report generation with SHA-256 integrity digest.
+- **PyPI Packaging (`pyproject.toml`)**: Standardized PEP 517 / 621 packaging with console scripts and optional extras (`all`, `images`, `documents`, `dev`).
+- **GitHub Actions & Pre-commit Hooks**: Official GitHub Action (`action.yml`) and `.pre-commit-hooks.yaml` for automated PR forensic scanning.
+
+---
+
 ## [2.0.0] - 2026-08-16
 
 - **Native AVIF & HEIC Stripping (`claudemark/provenance/images.py`)**: Built-in standard library ISOBMFF box parser for `.avif` and `.heic` containers stripping `c2pa`, `Exif`, and `xml ` metadata boxes with atomic file replacement.

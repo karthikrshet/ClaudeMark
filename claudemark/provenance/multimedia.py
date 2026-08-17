@@ -13,12 +13,13 @@ from typing import Any
 from .base import (
     FileCleaningReport,
     ProvenanceInspectionReport,
+    _sanitize_raw_path,
     safe_atomic_write_bytes,
     validate_safe_path,
 )
 
 
-def inspect_multimedia_file(file_path: Path | str) -> ProvenanceInspectionReport:
+def inspect_multimedia_file(file_path: "Path | str") -> ProvenanceInspectionReport:
     """Inspect multimedia container (MP4, MOV, MP3, M4A) for metadata atoms and tags."""
     safe_path = validate_safe_path(file_path)
     if not safe_path.is_file():
@@ -76,8 +77,8 @@ def inspect_multimedia_file(file_path: Path | str) -> ProvenanceInspectionReport
 
 
 def clean_multimedia_file(
-    input_path: Path | str,
-    output_path: Path | str | None = None,
+    input_path: "Path | str",
+    output_path: "Path | str | None" = None,
 ) -> FileCleaningReport:
     """Strip metadata atoms and ID3 tags from multimedia files atomically."""
     safe_in = validate_safe_path(input_path)
@@ -156,3 +157,4 @@ def clean_multimedia_file(
         actions_performed=actions or ["Sanitized multimedia container structure"],
         metadata_stripped=bool(actions),
     )
+

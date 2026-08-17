@@ -85,12 +85,25 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
             return token == required_key
         return False
 
+    def _get_cors_origin(self) -> str:
+        """Resolve allowed CORS origin from configuration without reflecting untrusted headers."""
+        allowed = os.environ.get("CLAUDEMARK_CORS_ORIGIN", "*").strip()
+        if not allowed or allowed == "*":
+            return "*"
+        # Whitelist check: strictly return an exact entry from the pre-configured server whitelist
+        req_origin = re.sub(r"[\r\n\x00-\x1f]", "", self.headers.get("Origin", "")).strip()
+        allowed_list = [re.sub(r"[\r\n\x00-\x1f]", "", o.strip()) for o in allowed.split(",") if o.strip()]
+        for trusted_origin in allowed_list:
+            if req_origin == trusted_origin:
+                return trusted_origin
+        return allowed_list[0] if allowed_list else "*"
+
     def _send_json(self, status: int, data: Any) -> None:
         payload = json.dumps(data, indent=2).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(payload)))
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Origin", self._get_cors_origin())
         self.end_headers()
         self.wfile.write(payload)
         self.wfile.flush()
@@ -100,14 +113,14 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(raw)))
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Origin", self._get_cors_origin())
         self.end_headers()
         self.wfile.write(raw)
         self.wfile.flush()
 
     def do_OPTIONS(self) -> None:
         self.send_response(HTTPStatus.NO_CONTENT)
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Origin", self._get_cors_origin())
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
         self.end_headers()
@@ -342,12 +355,15 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
         self._send_json(404, {"error": f"Endpoint not found: {path}"})
 
 
-def run_server(host: str = "127.0.0.1", port: int = 8950) -> None:
+def run_server(host: str | None = None, port: int | None = None) -> None:
     """Start ClaudeMark HTTP server."""
+    actual_host = host or os.environ.get("CLAUDEMARK_HOST", "127.0.0.1")
+    actual_port = port if port is not None else int(os.environ.get("CLAUDEMARK_PORT", "8950"))
+
     ThreadingHTTPServer.allow_reuse_address = True
-    server = ThreadingHTTPServer((host, port), ClaudeMarkHandler)
+    server = ThreadingHTTPServer((actual_host, actual_port), ClaudeMarkHandler)
     server.daemon_threads = True
-    print(f"ClaudeMark Server listening on http://{host}:{port}/", flush=True)
+    print(f"ClaudeMark Server listening on http://{actual_host}:{actual_port}/", flush=True)
     try:
         server.serve_forever()
     except (KeyboardInterrupt, SystemExit):
@@ -357,8 +373,11 @@ def run_server(host: str = "127.0.0.1", port: int = 8950) -> None:
 
 
 if __name__ == "__main__":
+    default_host = os.environ.get("CLAUDEMARK_HOST", "127.0.0.1")
+    default_port = int(os.environ.get("CLAUDEMARK_PORT", "8950"))
+
     parser = argparse.ArgumentParser(description="Run ClaudeMark HTTP server")
-    parser.add_argument("--host", default="127.0.0.1", help="Host interface to bind")
-    parser.add_argument("--port", type=int, default=8950, help="Port to listen on")
+    parser.add_argument("--host", default=default_host, help="Host interface to bind")
+    parser.add_argument("--port", type=int, default=default_port, help="Port to listen on")
     args = parser.parse_args()
     run_server(args.host, args.port)
