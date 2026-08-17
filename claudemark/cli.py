@@ -22,6 +22,7 @@ if hasattr(sys.stderr, "reconfigure"):
         pass
 
 from . import __author__, __version__, analyze_text, compute_forensic_diff, normalize_text
+from .core.constants import MAX_INPUT_BYTES, MAX_TEXT_LENGTH
 from .core.normalizer import NormalizationOptions
 from .core.unicode_forensics import analyze_unicode_forensics, visualize_unicode_markers
 from .detectors.registry import detector_registry
@@ -36,7 +37,7 @@ from .reports.markdown_report import format_markdown_report
 from .reports.terminal import format_terminal_diff, format_terminal_report
 from .watermark.experimental import run_parameter_sweep
 
-MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024  # 100 MB
+MAX_FILE_SIZE_BYTES = MAX_INPUT_BYTES
 
 
 def _read_input(

@@ -52,6 +52,12 @@ def inspect_image_file(file_path: Path) -> ProvenanceInspectionReport:
     has_ai = meta_info["has_ai_metadata"]
     suspicious = has_c2pa or has_exif or has_xmp or has_ai
 
+    confidence = "none"
+    if has_c2pa:
+        confidence = "confirmed"
+    elif suspicious:
+        confidence = "probable"
+
     details = {
         "c2pa": c2pa_info,
         "metadata": meta_info,
@@ -67,6 +73,7 @@ def inspect_image_file(file_path: Path) -> ProvenanceInspectionReport:
         has_xmp=has_xmp,
         has_ai_metadata=has_ai,
         suspicious=suspicious,
+        confidence=confidence,
         details=details,
         summary=f"Image ({suffix.lstrip('.').upper()}): {'AI provenance metadata found' if suspicious else 'Clean image metadata'}",
     )

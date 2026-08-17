@@ -115,6 +115,7 @@ class ProvenanceInspectionReport:
     has_xmp: bool = False
     has_ai_metadata: bool = False
     suspicious: bool = False
+    confidence: str = "informational"  # "confirmed" | "probable" | "informational" | "none"
     unicode_anomalies: int = 0
     statistical_score: float = 0.0
     details: dict[str, Any] = field(default_factory=dict)

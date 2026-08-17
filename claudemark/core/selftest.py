@@ -172,8 +172,25 @@ def _check_sarif_export() -> tuple[bool, str, dict[str, Any]]:
 
 
 def _check_zero_egress() -> tuple[bool, str, dict[str, Any]]:
-    # Verify no external socket connections are made
-    return True, "Zero-egress architecture verified (local stdlib-only execution)", {}
+    # Verify no external socket connections are made during core pipeline operations
+    orig_connect = socket.socket.connect
+
+    def blocked_connect(self, *args: Any, **kwargs: Any) -> Any:
+        raise RuntimeError("Zero-egress violation: outbound network connection attempted during local execution")
+
+    socket.socket.connect = blocked_connect
+    try:
+        # Run representative end-to-end pipeline under active network block
+        sample = "Furthermore, this analysis demonstrates significant depth.\u200b"
+        res = analyze_text(sample)
+        assert res["watermark_result"] is not None
+        assert res["unicode_forensics"] is not None
+        norm = normalize_text_str(sample)
+        assert "\u200b" not in norm
+    finally:
+        socket.socket.connect = orig_connect
+
+    return True, "Zero-egress architecture verified (0 network calls under active interceptor)", {}
 
 
 def print_selftest_report(report: SelfTestReport) -> None:

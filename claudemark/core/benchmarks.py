@@ -87,6 +87,13 @@ BENCHMARK_SAMPLES = [
 ]
 
 
+import hashlib
+
+BENCHMARK_DATASET_VERSION: str = "2.2.0"
+_dataset_bytes = json.dumps(BENCHMARK_SAMPLES, sort_keys=True).encode("utf-8")
+BENCHMARK_DATASET_HASH: str = hashlib.sha256(_dataset_bytes).hexdigest()[:16]
+
+
 @dataclass
 class BenchmarkMetric:
     detector_name: str
@@ -104,6 +111,8 @@ class BenchmarkMetric:
 @dataclass
 class BenchmarkSuiteResult:
     version: str = "2.1.0"
+    benchmark_dataset_version: str = BENCHMARK_DATASET_VERSION
+    benchmark_dataset_hash: str = BENCHMARK_DATASET_HASH
     total_samples: int = len(BENCHMARK_SAMPLES)
     metrics: list[BenchmarkMetric] = field(default_factory=list)
 

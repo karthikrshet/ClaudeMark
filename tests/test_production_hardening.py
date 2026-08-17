@@ -262,18 +262,32 @@ class TestSelfTestAndV22Hardenings:
         assert data["total_anomalies"] == 2
         assert data["has_anomalies"] is True
 
-    def test_c2pa_markdown_not_flagged(self, tmp_path: Path) -> None:
-        from claudemark.provenance.documents import inspect_document
-        doc_file = tmp_path / "README.md"
-        doc_file.write_text("# C2PA Content Credentials Guide\nThis document describes c2pa manifests.", encoding="utf-8")
-        rep = inspect_document(doc_file)
-        assert rep.has_c2pa is False
-        assert rep.suspicious is False
+    def test_markdown_c2pa_reference_is_not_manifest(self, tmp_path: Path) -> None:
+        path = tmp_path / "README.md"
+        path.write_text("ClaudeMark supports C2PA Content Credentials.", encoding="utf-8")
+        result = claudemark.inspect_provenance(path)
+        assert result.has_c2pa is False
+        assert result.confidence == "informational"
+
+    def test_real_c2pa_manifest_is_confirmed(self, tmp_path: Path) -> None:
+        # Create deterministic PNG fixture with embedded c2pa chunk
+        c2pa_file = tmp_path / "fixture_c2pa.png"
+        png_sig = b"\x89PNG\r\n\x1a\n"
+        ihdr = b"\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89"
+        c2pa_chunk = b"\x00\x00\x00\x04c2pa1234\x00\x00\x00\x00"
+        iend = b"\x00\x00\x00\x00IEND\xaeB`\x82"
+        c2pa_file.write_bytes(png_sig + ihdr + c2pa_chunk + iend)
+
+        result = claudemark.inspect_provenance(c2pa_file)
+        assert result.has_c2pa is True
+        assert result.confidence == "confirmed"
 
     def test_benchmark_suite_non_empty_f1(self) -> None:
         from claudemark.core.benchmarks import run_benchmark_suite
         res = run_benchmark_suite(reproduce=True)
         assert res.total_samples > 0
+        assert hasattr(res, "benchmark_dataset_version")
+        assert hasattr(res, "benchmark_dataset_hash")
         claude_m = next(m for m in res.metrics if m.detector_name == "claude")
         assert claude_m.recall > 0.0
         assert claude_m.f1_score > 0.0

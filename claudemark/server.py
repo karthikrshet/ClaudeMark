@@ -35,13 +35,12 @@ from typing import Any
 from urllib.parse import urlparse
 
 from . import __version__, analyze_text, compute_forensic_diff, normalize_text
+from .core.constants import MAX_INPUT_BYTES, MAX_TEXT_LENGTH
 from .core.normalizer import NormalizationOptions
 from .detectors.registry import detector_registry
 from .provenance.base import validate_safe_path
 from .provenance.batch import clean_single_file, inspect_single_file
 from .web.app import get_static_asset
-
-MAX_INPUT_BYTES = 100 * 1024 * 1024  # 100 MB
 
 
 _ALLOWED_EXTENSIONS = {

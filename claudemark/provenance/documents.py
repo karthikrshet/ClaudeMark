@@ -114,8 +114,13 @@ def inspect_document(file_path: Path) -> ProvenanceInspectionReport:
         has_c2pa = b"/c2pa" in data or b"c2pa.manifest" in data or b"c2pa_manifest" in data
         if any(k.encode("utf-8") in data.lower() for k in _AI_PROMPT_KEYWORDS):
             ai_metadata = True
-        suspicious = has_xmp or has_info or ai_metadata or has_c2pa
-        details = {"has_xmp": has_xmp, "has_info": has_info, "has_c2pa": has_c2pa, "has_ai_metadata": ai_metadata}
+    confidence = "none"
+    if has_c2pa:
+        confidence = "confirmed"
+    elif suspicious or ai_metadata or unicode_anomalies > 0:
+        confidence = "probable"
+    elif b"c2pa" in data.lower():
+        confidence = "informational"
 
     return ProvenanceInspectionReport(
         file_path=str(file_path),
@@ -125,6 +130,7 @@ def inspect_document(file_path: Path) -> ProvenanceInspectionReport:
         has_c2pa=has_c2pa,
         has_ai_metadata=ai_metadata,
         suspicious=suspicious,
+        confidence=confidence,
         unicode_anomalies=unicode_anomalies,
         details=details,
         summary=f"Document ({suffix.lstrip('.').upper()}): {'Suspicious provenance marks found' if suspicious else 'Clean document'}",
