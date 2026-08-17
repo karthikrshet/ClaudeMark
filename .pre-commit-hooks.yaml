@@ -1,0 +1,13 @@
+- id: claudemark-clean-unicode
+  name: ClaudeMark Clean Unicode Steganography
+  description: Automatically strips zero-width spaces, BiDi overrides, and invisible characters from text.
+  entry: python -m claudemark.cli unicode clean
+  language: python
+  types: [text]
+
+- id: claudemark-audit
+  name: ClaudeMark Audit Staged Files
+  description: Scans staged files and containers for C2PA, EXIF, and security anomalies.
+  entry: python -m claudemark.cli audit dir .
+  language: python
+  pass_filenames: false

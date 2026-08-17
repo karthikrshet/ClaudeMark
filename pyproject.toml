@@ -1,0 +1,78 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "claudemark"
+version = "2.0.0"
+description = "Universal Multi-AI Watermark & Provenance Forensics Toolkit"
+readme = "README.md"
+authors = [
+  { name = "Karthik R Shet", email = "karthikrshet@users.noreply.github.com" }
+]
+license = { text = "MIT" }
+requires-python = ">=3.9"
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Security",
+  "Topic :: Security :: Cryptography",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+keywords = [
+  "ai-watermark",
+  "steganography",
+  "provenance",
+  "c2pa",
+  "exif",
+  "unicode-security",
+  "text-forensics",
+  "llm-watermark"
+]
+dependencies = []
+
+[project.optional-dependencies]
+all = [
+  "pillow>=9.0.0",
+  "pypdf>=3.0.0",
+  "python-docx>=0.8.11",
+]
+images = [
+  "pillow>=9.0.0",
+]
+documents = [
+  "pypdf>=3.0.0",
+  "python-docx>=0.8.11",
+]
+dev = [
+  "pytest>=7.0.0",
+  "pytest-cov>=4.0.0",
+]
+
+[project.scripts]
+claudemark = "claudemark.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/karthikrshet/ClaudeMark"
+Documentation = "https://github.com/karthikrshet/ClaudeMark#readme"
+Repository = "https://github.com/karthikrshet/ClaudeMark.git"
+Issues = "https://github.com/karthikrshet/ClaudeMark/issues"
+Changelog = "https://github.com/karthikrshet/ClaudeMark/blob/main/CHANGELOG.md"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["claudemark*"]
+exclude = ["tests*", "benchmarks*"]
+
+[tool.setuptools.package-data]
+claudemark = [
+  "web/static/*",
+  "detectors/data/*"
+]

@@ -1,0 +1,41 @@
+name: 'ClaudeMark Forensics & Provenance Audit'
+description: 'Automated CI/CD security audit for AI watermarks, invisible Unicode steganography, and container provenance.'
+author: 'Karthik R Shet'
+branding:
+  icon: 'shield'
+  color: 'purple'
+
+inputs:
+  path:
+    description: 'Target directory or file path to audit'
+    required: false
+    default: '.'
+  fail-on-suspicious:
+    description: 'Fail step if suspicious files, zero-width steganography, or C2PA tracking are detected'
+    required: false
+    default: 'true'
+  max-files:
+    description: 'Maximum number of files to scan'
+    required: false
+    default: '5000'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Run ClaudeMark Audit
+      shell: bash
+      run: |
+        python claudemark.py audit dir "${{ inputs.path }}" --max-files "${{ inputs.max-files }}" --json > audit_results.json
+        cat audit_results.json
+        if [ "${{ inputs.fail-on-suspicious }}" = "true" ]; then
+          SUSP=$(python -c "import json; res=json.load(open('audit_results.json')); print(res.get('total_suspicious_files', 0) + res.get('total_unicode_anomalies', 0))")
+          if [ "$SUSP" -gt 0 ]; then
+            echo "::error::ClaudeMark detected $SUSP suspicious files or steganographic markers!"
+            exit 1
+          fi
+        fi

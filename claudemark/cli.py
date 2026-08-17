@@ -122,6 +122,12 @@ def cmd_inspect(args: argparse.Namespace) -> int:
     else:
         # Single file inspection
         rep = inspect_single_file(target)
+        if args.certificate:
+            from .provenance.certificate import save_audit_certificate
+            cert_p = Path(args.certificate).resolve()
+            save_audit_certificate(target, rep.to_dict(), cert_p)
+            print(f"Generated Forensic Audit Certificate: {cert_p}")
+
         if args.json:
             _write_output(json.dumps(rep.to_dict(), indent=2), args.output)
         else:
@@ -473,6 +479,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_insp = subparsers.add_parser("inspect", help="Inspect file or directory for C2PA, EXIF, XMP, and AI marks")
     p_insp.add_argument("target", help="File or directory path to inspect")
     p_insp.add_argument("--json", action="store_true", help="Output machine-readable JSON")
+    p_insp.add_argument("--certificate", "-c", default=None, help="Generate standalone HTML audit certificate")
     p_insp.add_argument("--no-recursive", action="store_true", help="Do not recursively scan subdirectories")
     p_insp.add_argument("--output", "-o", default=None, help="Save report to file")
     p_insp.set_defaults(func=cmd_inspect)
