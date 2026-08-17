@@ -21,16 +21,12 @@ from .base import (
 
 def inspect_multimedia_file(file_path: "Path | str") -> ProvenanceInspectionReport:
     """Inspect multimedia container (MP4, MOV, MP3, M4A) for metadata atoms and tags."""
-    # Sanitize the raw user-supplied string before any Path/os call (breaks CodeQL taint)
-    _sanitize_raw_path(str(file_path).strip())
     safe_path = validate_safe_path(file_path)
-    if not os.path.isfile(str(safe_path)):
+    if not safe_path.is_file():
         raise FileNotFoundError(f"Target multimedia file not found: {safe_path}")
 
     suffix = safe_path.suffix.lower()
-    dest_str = str(safe_path)
-    with open(dest_str, "rb") as _fh:
-        data = _fh.read()
+    data = safe_path.read_bytes()
     size = len(data)
 
     has_metadata = False
@@ -85,18 +81,14 @@ def clean_multimedia_file(
     output_path: "Path | str | None" = None,
 ) -> FileCleaningReport:
     """Strip metadata atoms and ID3 tags from multimedia files atomically."""
-    # Sanitize the raw user-supplied string before any Path/os call (breaks CodeQL taint)
-    _sanitize_raw_path(str(input_path).strip())
     safe_in = validate_safe_path(input_path)
-    if not os.path.isfile(str(safe_in)):
+    if not safe_in.is_file():
         raise FileNotFoundError(f"Input multimedia file not found: {safe_in}")
 
     safe_out = validate_safe_path(output_path) if output_path else safe_in
 
     suffix = safe_in.suffix.lower()
-    in_str = str(safe_in)
-    with open(in_str, "rb") as _fh:
-        data = _fh.read()
+    data = safe_in.read_bytes()
     orig_size = len(data)
     actions: list[str] = []
     cleaned_payload = data
