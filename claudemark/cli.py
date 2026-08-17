@@ -21,7 +21,7 @@ if hasattr(sys.stderr, "reconfigure"):
     except Exception:
         pass
 
-from . import __version__, analyze_text, compute_forensic_diff, normalize_text
+from . import __author__, __version__, analyze_text, compute_forensic_diff, normalize_text
 from .core.normalizer import NormalizationOptions
 from .core.unicode_forensics import analyze_unicode_forensics, visualize_unicode_markers
 from .detectors.registry import detector_registry
@@ -592,7 +592,22 @@ def build_parser() -> argparse.ArgumentParser:
     p_audit.add_argument("target_path", nargs="?", default=None, help="Target path when subcommand is specified")
     p_audit.add_argument("--max-files", type=int, default=1000, help="Maximum files to scan")
     p_audit.add_argument("--json", action="store_true", help="Output JSON audit report")
+    p_audit.add_argument("--format", choices=["text", "json", "sarif"], default="text", help="Output format")
+    p_audit.add_argument("--sarif", "-s", default=None, help="Save OASIS SARIF v2.1.0 report for GitHub Security")
+    p_audit.add_argument("--fail-on", choices=["never", "any", "confirmed", "security"], default="never", help="CI exit failure threshold")
+    p_audit.add_argument("--output", "-o", default=None, help="Save report to file")
     p_audit.set_defaults(func=cmd_audit)
+
+    # doctor
+    p_doc = subparsers.add_parser("doctor", help="Inspect local environment, binaries, format decoders, and security status")
+    p_doc.add_argument("--json", action="store_true", help="Output JSON diagnostic report")
+    p_doc.set_defaults(func=cmd_doctor)
+
+    # benchmark
+    p_bm = subparsers.add_parser("benchmark", help="Run reproducible scientific benchmark evaluation matrix")
+    p_bm.add_argument("--reproduce", action="store_true", default=True, help="Run standard deterministic benchmark suite")
+    p_bm.add_argument("--json", action="store_true", help="Output JSON benchmark metrics")
+    p_bm.set_defaults(func=cmd_benchmark)
 
     # schema
     p_sch = subparsers.add_parser("schema", help="Export JSON Schemas for tool dispatch and API contracts")
@@ -601,9 +616,28 @@ def build_parser() -> argparse.ArgumentParser:
 
     # version
     p_ver = subparsers.add_parser("version", help="Show ClaudeMark version and build info")
+    p_ver.add_argument("--json", action="store_true", help="Output JSON version info")
     p_ver.set_defaults(func=cmd_version)
 
     return parser
+
+def cmd_doctor(args: argparse.Namespace) -> int:
+    from .core.doctor import print_doctor_report, run_doctor_diagnostics
+    report = run_doctor_diagnostics()
+    if args.json:
+        print(json.dumps(report.to_dict(), indent=2))
+    else:
+        print_doctor_report(report)
+    return 0 if report.overall_health == "HEALTHY" else 1
+
+def cmd_benchmark(args: argparse.Namespace) -> int:
+    from .core.benchmarks import print_benchmark_table, run_benchmark_suite
+    result = run_benchmark_suite(reproduce=args.reproduce)
+    if args.json:
+        print(json.dumps(result.to_dict(), indent=2))
+    else:
+        print_benchmark_table(result)
+    return 0
 
 def cmd_schema(args: argparse.Namespace) -> int:
     from .agent.tools import AGENT_TOOLS_MANIFEST
@@ -618,13 +652,21 @@ def cmd_schema(args: argparse.Namespace) -> int:
 
 def cmd_audit(args: argparse.Namespace) -> int:
     from .provenance.audit import audit_directory
+    from .provenance.sarif import convert_audit_report_to_sarif, export_sarif
 
     raw_target = args.target_path if args.subcommand_or_target in ("dir", "directory") and args.target_path else args.subcommand_or_target
     target = Path(raw_target or ".").resolve()
     rep = audit_directory(target, max_files=args.max_files)
 
-    if args.json:
-        print(json.dumps(rep.to_dict(), indent=2))
+    if args.sarif:
+        export_sarif(rep, Path(args.sarif))
+        print(f"Generated OASIS SARIF v2.1.0 Report: {Path(args.sarif).resolve()}")
+
+    if args.format == "sarif":
+        sarif_json = json.dumps(convert_audit_report_to_sarif(rep), indent=2)
+        _write_output(sarif_json, args.output)
+    elif args.json or args.format == "json":
+        _write_output(json.dumps(rep.to_dict(), indent=2), args.output)
     else:
         print(f"ClaudeMark Recursive Forensic Audit: {target}")
         print("═" * 60)
@@ -639,11 +681,29 @@ def cmd_audit(args: argparse.Namespace) -> int:
             for f in rep.findings:
                 print(f"[{f.confidence.upper()}] {f.finding_type} -> {Path(f.file_path).name}")
                 print(f"    Details: {f.details}")
+
+    # CI Policy Exit Code Evaluation
+    if args.fail_on == "any" and (rep.total_suspicious_files > 0 or rep.total_unicode_anomalies > 0):
+        return 1
+    if args.fail_on == "security" and rep.total_security_threats > 0:
+        return 1
+    if args.fail_on == "confirmed" and (rep.total_c2pa_manifests > 0 or rep.total_security_threats > 0):
+        return 1
+
     return 0
 
 
 def cmd_version(args: argparse.Namespace) -> int:
-    print(f"ClaudeMark v{__version__} (Core Engine & Forensic Suite)")
+    if args.json:
+        v_info = {
+            "version": __version__,
+            "author": __author__,
+            "detectors": detector_registry.list_detectors(),
+            "zero_egress": True,
+        }
+        print(json.dumps(v_info, indent=2))
+    else:
+        print(f"ClaudeMark v{__version__} (Core Engine & Forensic Suite)")
     return 0
 
 

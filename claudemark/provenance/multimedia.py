@@ -21,6 +21,9 @@ from .base import (
 def inspect_multimedia_file(file_path: Path | str) -> ProvenanceInspectionReport:
     """Inspect multimedia container (MP4, MOV, MP3, M4A) for metadata atoms and tags."""
     safe_path = validate_safe_path(file_path)
+    if not safe_path.is_file():
+        raise FileNotFoundError(f"Target multimedia file not found: {safe_path}")
+
     suffix = safe_path.suffix.lower()
     data = safe_path.read_bytes()
     size = len(data)
@@ -78,6 +81,9 @@ def clean_multimedia_file(
 ) -> FileCleaningReport:
     """Strip metadata atoms and ID3 tags from multimedia files atomically."""
     safe_in = validate_safe_path(input_path)
+    if not safe_in.is_file():
+        raise FileNotFoundError(f"Input multimedia file not found: {safe_in}")
+
     safe_out = validate_safe_path(output_path) if output_path else safe_in
 
     suffix = safe_in.suffix.lower()
