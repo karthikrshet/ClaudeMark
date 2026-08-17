@@ -347,14 +347,26 @@ def cmd_security(args: argparse.Namespace) -> int:
 def cmd_agent(args: argparse.Namespace) -> int:
     from .agent.tools import AGENT_TOOLS_MANIFEST, execute_agent_tool
 
-    if args.subcommand == "list":
+    # 'tools' is an alias for 'list'
+    if args.subcommand in ("list", "tools") or args.subcommand is None:
         print(json.dumps(AGENT_TOOLS_MANIFEST, indent=2))
     elif args.subcommand == "exec":
-        arguments = json.loads(args.args) if args.args else {}
-        res = execute_agent_tool(args.tool_name, arguments)
+        # Accept tool name from --tool flag OR positional argument
+        tool_name = getattr(args, "tool_name", None) or getattr(args, "tool_name_pos", None)
+        if not tool_name:
+            sys.stderr.write("Error: Specify tool via --tool <name> or as a positional argument.\n")
+            sys.stderr.write("Example: claudemark agent exec --tool analyze_watermark --args '{\"text\":\"sample\"}'\n")
+            return 1
+        try:
+            arguments = json.loads(args.args) if args.args else {}
+        except json.JSONDecodeError as e:
+            sys.stderr.write(f"Error: Invalid JSON in --args: {e}\n")
+            return 1
+        res = execute_agent_tool(tool_name, arguments)
         print(json.dumps(res, indent=2))
 
     return 0
+
 
 
 def cmd_c2pa(args: argparse.Namespace) -> int:
@@ -467,6 +479,13 @@ def build_parser() -> argparse.ArgumentParser:
         prog="claudemark",
         description="ClaudeMark: Multi-AI Watermark & Provenance Forensics Toolkit",
     )
+    # Standard --version flag (unix convention)
+    parser.add_argument(
+        "--version", "-V",
+        action="version",
+        version=f"%(prog)s {__version__}",
+        help="Show version string and exit",
+    )
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # serve
@@ -559,9 +578,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_agt = subparsers.add_parser("agent", help="AI Agent tool interface and dispatcher")
     p_agt_sub = p_agt.add_subparsers(dest="subcommand", help="Agent action")
     p_agt_list = p_agt_sub.add_parser("list", help="List all agent tools in JSON schema format")
+    p_agt_tools = p_agt_sub.add_parser("tools", help="Alias for 'list': list all agent tools in JSON schema format")
     p_agt_exec = p_agt_sub.add_parser("exec", help="Execute an agent tool locally")
-    p_agt_exec.add_argument("tool_name", help="Name of tool to execute")
-    p_agt_exec.add_argument("--args", default="{}", help="JSON string arguments")
+    p_agt_exec.add_argument("--tool", dest="tool_name", default=None, help="Name of tool to execute")
+    p_agt_exec.add_argument("tool_name_pos", nargs="?", default=None, help="Tool name (positional, alternative to --tool)")
+    p_agt_exec.add_argument("--args", default="{}", help="JSON string of arguments (e.g. '{\"file_path\":\"input.txt\"}')")
     p_agt.set_defaults(func=cmd_agent)
 
     # normalize
@@ -694,7 +715,7 @@ def cmd_audit(args: argparse.Namespace) -> int:
 
 
 def cmd_version(args: argparse.Namespace) -> int:
-    if args.json:
+    if getattr(args, "json", False):
         v_info = {
             "version": __version__,
             "author": __author__,

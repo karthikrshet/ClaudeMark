@@ -24,6 +24,8 @@ class RewriteEvaluation:
     original_entropy: float
     rewritten_entropy: float
     entropy_delta: float
+    words_changed: int = 0
+    characters_changed: int = 0
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -44,8 +46,17 @@ class RewriteResult:
         "Semantic similarity is estimated locally.",
     ])
 
+    @property
+    def disrupted_text(self) -> str:
+        """Alias for rewritten_text."""
+        return self.rewritten_text
+
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        d = asdict(self)
+        d["disrupted_text"] = self.rewritten_text
+        if self.evaluation:
+            d["words_changed"] = self.evaluation.words_changed
+        return d
 
 
 class RewriteProvider(ABC):

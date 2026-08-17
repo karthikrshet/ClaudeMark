@@ -42,12 +42,18 @@ class DetectionResult:
     ])
 
     @property
+    def composite_score(self) -> float:
+        """Alias for signal_score; the primary composite watermark signal (0.0–1.0)."""
+        return self.signal_score
+
+    @property
     def is_watermarked(self) -> bool:
         return self.signal_score >= self.threshold
 
     def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
         d["is_watermarked"] = self.is_watermarked
+        d["composite_score"] = self.signal_score  # explicit alias in serialized form
         return d
 
 

@@ -5,11 +5,10 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from .. import __version__ as VERSION
 from ..core.text_stats import TextStatistics
 from ..core.unicode_forensics import UnicodeForensicReport
 from ..watermark.base import WatermarkResult
-
-VERSION = "0.1.0"
 
 
 def format_json_report(

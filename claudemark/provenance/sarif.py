@@ -49,27 +49,41 @@ RULES_METADATA = [
 ]
 
 
-def convert_audit_report_to_sarif(report: DirectoryAuditReport) -> dict[str, Any]:
+def convert_audit_report_to_sarif(report: DirectoryAuditReport | list[dict[str, Any]] | dict[str, Any]) -> dict[str, Any]:
     """Convert ClaudeMark audit report into standard OASIS SARIF v2.1.0 format."""
     results = []
 
-    for f in report.findings:
+    # Handle both DirectoryAuditReport objects and raw findings lists/dicts
+    findings_list = []
+    if isinstance(report, DirectoryAuditReport):
+        findings_list = report.findings
+    elif isinstance(report, dict):
+        findings_list = report.get("findings", [])
+    elif isinstance(report, list):
+        findings_list = report
+
+    for f in findings_list:
         rule_id = "CM002-C2PATrackingManifest"
         level = "warning"
 
-        if "Unicode" in f.finding_type or "Steganography" in f.finding_type:
+        finding_type = getattr(f, "finding_type", None) or (f.get("finding_type") if isinstance(f, dict) else "")
+        details = getattr(f, "details", None) or (f.get("details") if isinstance(f, dict) else "")
+        file_path = getattr(f, "file_path", None) or (f.get("file_path") or f.get("file") if isinstance(f, dict) else "unknown")
+        line_num = getattr(f, "line_number", None) or (f.get("line") or f.get("line_number") if isinstance(f, dict) else 1)
+
+        if "Unicode" in finding_type or "Steganography" in finding_type:
             rule_id = "CM001-ZeroWidthSteganography"
             level = "error"
-        elif "Security" in f.finding_type or "Bomb" in f.finding_type or "Macro" in f.finding_type:
+        elif "Security" in finding_type or "Bomb" in finding_type or "Macro" in finding_type:
             rule_id = "CM004-ContainerSecurityThreat"
             level = "error"
-        elif "Statistical" in f.finding_type or "Watermark" in f.finding_type:
+        elif "Statistical" in finding_type or "Watermark" in finding_type:
             rule_id = "CM003-HighStatisticalAnomaly"
             level = "note"
 
-        rel_path = f.file_path
+        rel_path = str(file_path)
         try:
-            rel_path = str(Path(f.file_path).relative_to(Path.cwd()))
+            rel_path = str(Path(file_path).relative_to(Path.cwd()))
         except Exception:
             pass
 
@@ -77,7 +91,7 @@ def convert_audit_report_to_sarif(report: DirectoryAuditReport) -> dict[str, Any
             "ruleId": rule_id,
             "level": level,
             "message": {
-                "text": f"[{f.finding_type}] {f.details}"
+                "text": f"[{finding_type}] {details}" if finding_type else str(details or "Audit finding")
             },
             "locations": [
                 {
@@ -87,7 +101,7 @@ def convert_audit_report_to_sarif(report: DirectoryAuditReport) -> dict[str, Any
                             "uriBaseId": "%SRCROOT%"
                         },
                         "region": {
-                            "startLine": 1,
+                            "startLine": max(int(line_num or 1), 1),
                             "startColumn": 1
                         }
                     }
@@ -115,9 +129,16 @@ def convert_audit_report_to_sarif(report: DirectoryAuditReport) -> dict[str, Any
     return sarif_doc
 
 
-def export_sarif(report: DirectoryAuditReport, output_path: Path) -> Path:
+def build_sarif_report(report: DirectoryAuditReport | list[dict[str, Any]] | dict[str, Any]) -> dict[str, Any]:
+    """Alias for convert_audit_report_to_sarif: build standard SARIF 2.1.0 report."""
+    return convert_audit_report_to_sarif(report)
+
+
+def export_sarif(report: DirectoryAuditReport | list[dict[str, Any]] | dict[str, Any], output_path: Path) -> Path:
     """Save SARIF 2.1.0 report to disk."""
     sarif_data = convert_audit_report_to_sarif(report)
+    output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(sarif_data, indent=2), encoding="utf-8")
     return output_path
+

@@ -16,6 +16,7 @@ from .c2pa import inspect_c2pa_bytes, inspect_c2pa_tool
 from .documents import clean_document, inspect_document
 from .exif_xmp import inspect_exif_xmp_bytes
 from .images import clean_image_file, inspect_image_file
+from .sarif import build_sarif_report, convert_audit_report_to_sarif, export_sarif
 
 __all__ = [
     "ProvenanceInspectionReport",
@@ -33,4 +34,7 @@ __all__ = [
     "inspect_image_file",
     "clean_image_file",
     "ALL_SUPPORTED_EXTS",
+    "convert_audit_report_to_sarif",
+    "build_sarif_report",
+    "export_sarif",
 ]
