@@ -10,7 +10,11 @@ from typing import Any
 
 from .core.diff import ForensicDiffResult, compute_forensic_diff
 from .core.normalizer import NormalizationOptions, NormalizationResult, normalize_text
-from .core.text_stats import TextStatistics, analyze_text_statistics
+from .core.text_stats import (
+    TextStatistics,
+    analyze_text_statistics,
+    compute_sentence_heatmap,
+)
 from .core.unicode_forensics import (
     AnomalyDetail,
     UnicodeForensicReport,
@@ -47,10 +51,11 @@ def analyze_text(
     threshold: float | None = None,
 ) -> dict[str, Any]:
     """High-level one-shot analysis returning text statistics, Unicode forensics,
-    and statistical watermark evaluation.
+    sentence heatmap, and statistical watermark evaluation.
     """
     stats = analyze_text_statistics(text)
     unicode_rep = analyze_unicode_forensics(text)
+    heatmap = compute_sentence_heatmap(text)
     
     detector = detector_registry.get(detector_name)
     if threshold is not None:
@@ -62,6 +67,7 @@ def analyze_text(
         "text_statistics": stats,
         "unicode_forensics": unicode_rep,
         "watermark_result": wm_res,
+        "sentence_heatmap": heatmap,
     }
 
 

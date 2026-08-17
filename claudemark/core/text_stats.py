@@ -207,3 +207,55 @@ def analyze_text_statistics(text: str) -> TextStatistics:
         punctuation=punct_stats,
         top_words=word_counts.most_common(10),
     )
+
+
+def compute_sentence_heatmap(text: str) -> list[dict[str, Any]]:
+    """Segment text into sentences and compute individual statistical anomaly indicators."""
+    if not text.strip():
+        return []
+
+    from .unicode_forensics import analyze_unicode_forensics
+
+    raw_sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', text) if s.strip()]
+    if not raw_sentences:
+        raw_sentences = [text.strip()]
+
+    heatmap = []
+    for idx, sent in enumerate(raw_sentences):
+        words = re.findall(r"\b\w+\b", sent.lower())
+        u_rep = analyze_unicode_forensics(sent)
+        
+        # Calculate local entropy and lexical density
+        if len(words) > 3:
+            counts = Counter(words)
+            probs = [c / len(words) for c in counts.values()]
+            entropy = -sum(p * math.log2(p) for p in probs)
+            norm_entropy = min(1.0, entropy / math.log2(len(words)))
+        else:
+            norm_entropy = 0.5
+
+        # Heuristic anomaly indicator (lower entropy/diversity in longer sentences = higher statistical pattern)
+        if len(words) >= 6 and norm_entropy < 0.65:
+            score = round(0.70 + (0.65 - norm_entropy) * 0.5, 2)
+            level = "high"
+        elif len(words) >= 4 and norm_entropy < 0.80:
+            score = round(0.40 + (0.80 - norm_entropy) * 0.4, 2)
+            level = "medium"
+        else:
+            score = round(0.10 + (1.0 - norm_entropy) * 0.2, 2)
+            level = "clean"
+
+        if u_rep.total_anomalies > 0:
+            level = "high"
+            score = max(score, 0.95)
+
+        heatmap.append({
+            "index": idx,
+            "sentence": sent,
+            "word_count": len(words),
+            "score": score,
+            "level": level,  # 'high' | 'medium' | 'clean'
+            "unicode_anomalies": u_rep.total_anomalies,
+        })
+
+    return heatmap

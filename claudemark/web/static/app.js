@@ -430,6 +430,25 @@
         pillElem.textContent = 'Clean / Low Signal';
       }
     }
+
+    const heatmapElem = document.getElementById('sentenceHeatmapOutput');
+    const heatmapList = data.sentence_heatmap || [];
+    if (heatmapElem) {
+      if (heatmapList.length > 0) {
+        heatmapElem.innerHTML = heatmapList
+          .map(
+            (s) => `
+          <span class="heatmap-sentence heatmap-${s.level}" title="Sentence #${s.index + 1} | Anomaly Score: ${s.score} | Anomalies: ${s.unicode_anomalies}">
+            ${s.sentence}
+            <span class="heatmap-badge">${s.score}</span>
+          </span>
+        `
+          )
+          .join(' ');
+      } else {
+        heatmapElem.textContent = 'No sentence segmentation available.';
+      }
+    }
   }
 
   /* ==========================================================================

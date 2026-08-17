@@ -712,6 +712,56 @@ textarea:focus, input[type="text"]:focus {
   color: var(--text-secondary);
 }
 
+/* Heatmap Visualizer */
+.heatmap-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  line-height: 1.8;
+}
+
+.heatmap-sentence {
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: var(--transition-fast);
+  cursor: pointer;
+}
+
+.heatmap-sentence:hover {
+  filter: brightness(1.2);
+}
+
+.heatmap-clean {
+  background-color: #064e3b;
+  border-color: #059669;
+  color: #d1fae5;
+}
+
+.heatmap-medium {
+  background-color: #78350f;
+  border-color: #d97706;
+  color: #fef3c7;
+}
+
+.heatmap-high {
+  background-color: #7f1d1d;
+  border-color: #dc2626;
+  color: #fee2e2;
+}
+
+.heatmap-badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .app-container {

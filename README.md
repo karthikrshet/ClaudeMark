@@ -250,6 +250,44 @@ Optional external system dependencies (automatically used when present on host o
 
 ---
 
+## CI/CD, GitHub Actions & Pre-Commit Integration
+
+### Official GitHub Action
+Integrate ClaudeMark directly into your GitHub CI/CD workflows to scan Pull Requests and prevent unstripped tracking manifests or invisible Unicode markers:
+
+```yaml
+- name: Audit Repository with ClaudeMark
+  uses: karthikrshet/ClaudeMark@v2.0.0
+  with:
+    path: '.'
+    fail-on-suspicious: 'true'
+```
+
+### Pre-Commit Hook
+Prevent invisible steganography and container tracking from ever entering your Git repository by adding ClaudeMark to `.pre-commit-config.yaml`:
+
+```yaml
+repos:
+  - repo: https://github.com/karthikrshet/ClaudeMark
+    rev: v2.0.0
+    hooks:
+      - id: claudemark-clean-unicode
+      - id: claudemark-audit
+```
+
+---
+
+## Cryptographic Forensic Audit Certificate Export
+
+Generate verifiable, print-ready, standalone HTML audit certificates with SHA-256 integrity digests, timestamp signatures, and risk evaluations:
+
+```bash
+# Generate standalone HTML forensic certificate for a document
+python claudemark.py inspect document.pdf --certificate audit_certificate.html
+```
+
+---
+
 ## Environment Configuration
 
 Configuration variables are supported via environment exports or a local `.env` file (gitignored by default):
