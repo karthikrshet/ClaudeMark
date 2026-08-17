@@ -23,7 +23,7 @@ def install_single_target(skill_src: Path, dest_dir: Path, force: bool = False, 
 
     if dest_dir.exists():
         if not force:
-            print(f"Skill already installed at: {dest_dir} (skipping, use --force to overwrite)")
+            print(f"Skill already present at: {dest_dir} (skipping, use --force to overwrite)")
             return True
         shutil.rmtree(dest_dir)
 
@@ -33,7 +33,7 @@ def install_single_target(skill_src: Path, dest_dir: Path, force: bool = False, 
     return True
 
 
-def install_skill(force: bool = False, target_env: str = "all", dry_run: bool = False) -> int:
+def install_skill(force: bool = False, target_env: str = "all", scope: str = "all", dry_run: bool = False) -> int:
     repo_root = Path(__file__).resolve().parent
     skill_src = repo_root / "skills" / "ai-forensics"
 
@@ -41,15 +41,20 @@ def install_skill(force: bool = False, target_env: str = "all", dry_run: bool = 
         print(f"Error: Skill source directory not found: {skill_src}", file=sys.stderr)
         return 1
 
-    home = Path.home()
     targets = list(TARGET_MAP.keys()) if target_env == "all" else [target_env]
+    roots = []
+    if scope in ("workspace", "all"):
+        roots.append(repo_root)
+    if scope in ("user", "all"):
+        roots.append(Path.home())
 
     success = True
-    for t in targets:
-        if t in TARGET_MAP:
-            dest = home / TARGET_MAP[t]
-            if not install_single_target(skill_src, dest, force=force, dry_run=dry_run):
-                success = False
+    for root in roots:
+        for t in targets:
+            if t in TARGET_MAP:
+                dest = root / TARGET_MAP[t]
+                if not install_single_target(skill_src, dest, force=force, dry_run=dry_run):
+                    success = False
 
     return 0 if success else 1
 
@@ -65,8 +70,15 @@ def main():
         default="all",
         help="Target agent host environment (default: all)",
     )
+    parser.add_argument(
+        "--scope",
+        "-s",
+        choices=["all", "workspace", "user"],
+        default="all",
+        help="Installation scope: workspace (project local), user (~/), or all (default: all)",
+    )
     args = parser.parse_args()
-    sys.exit(install_skill(force=args.force, target_env=args.target, dry_run=args.dry_run))
+    sys.exit(install_skill(force=args.force, target_env=args.target, scope=args.scope, dry_run=args.dry_run))
 
 
 if __name__ == "__main__":

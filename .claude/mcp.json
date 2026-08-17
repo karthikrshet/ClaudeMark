@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "claudemark": {
+      "command": "python",
+      "args": ["claudemark.py", "serve", "--port", "8950"],
+      "env": {
+        "PYTHONUNBUFFERED": "1"
+      }
+    }
+  }
+}
