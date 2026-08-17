@@ -234,3 +234,53 @@ class TestDynamicJsonReportVersion:
         data = json.loads(report_json)
         assert data["version"] == claudemark.__version__
         assert data["version"] != "0.1.0"
+
+
+class TestSelfTestAndV22Hardenings:
+    """Test 9-point self-test diagnostic, escaped CLI input, and C2PA precision."""
+
+    def test_run_selftest_passes(self) -> None:
+        from claudemark.core.selftest import run_selftest
+        report = run_selftest()
+        assert report.overall_status == "PASS"
+        assert report.passed_checks == 9
+        assert report.failed_checks == 0
+        assert len(report.steps) == 9
+
+    def test_cli_selftest_command(self, capsys: pytest.CaptureFixture[str]) -> None:
+        code = main(["selftest"])
+        assert code == 0
+        captured = capsys.readouterr()
+        assert "SYSTEM VERIFIED" in captured.out
+        assert "9/9 checks passed" in captured.out
+
+    def test_cli_text_escaped_flag(self, capsys: pytest.CaptureFixture[str]) -> None:
+        code = main(["unicode", "inspect", "--text-escaped", r"Test\u200bData\ufeff", "--json"])
+        assert code == 0
+        captured = capsys.readouterr()
+        data = json.loads(captured.out)
+        assert data["total_anomalies"] == 2
+        assert data["has_anomalies"] is True
+
+    def test_c2pa_markdown_not_flagged(self, tmp_path: Path) -> None:
+        from claudemark.provenance.documents import inspect_document
+        doc_file = tmp_path / "README.md"
+        doc_file.write_text("# C2PA Content Credentials Guide\nThis document describes c2pa manifests.", encoding="utf-8")
+        rep = inspect_document(doc_file)
+        assert rep.has_c2pa is False
+        assert rep.suspicious is False
+
+    def test_benchmark_suite_non_empty_f1(self) -> None:
+        from claudemark.core.benchmarks import run_benchmark_suite
+        res = run_benchmark_suite(reproduce=True)
+        assert res.total_samples > 0
+        claude_m = next(m for m in res.metrics if m.detector_name == "claude")
+        assert claude_m.recall > 0.0
+        assert claude_m.f1_score > 0.0
+
+    def test_experimental_sweep_evaluates_samples(self) -> None:
+        from claudemark.watermark.experimental import run_parameter_sweep
+        sweep = run_parameter_sweep()
+        assert len(sweep.evaluations) > 0
+        assert sweep.evaluations[0].f1_score > 0.0
+

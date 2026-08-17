@@ -146,15 +146,22 @@ def audit_directory(
     report = DirectoryAuditReport(directory_path=str(root_dir))
     collected_files: list[Path] = []
 
-    for root, _, files in os.walk(str(root_dir)):
-        safe_root = validate_safe_path(root, base_dir=root_dir)
-        for f_name in files:
-            if len(collected_files) >= max_files:
-                break
-            safe_file = validate_safe_path(safe_root / f_name, base_dir=root_dir)
-            collected_files.append(safe_file)
+    # Safely gather files within containment boundary using Path.rglob
+    for p in root_dir.rglob("*"):
         if len(collected_files) >= max_files:
             break
+        # Skip directories and hidden git/virtualenv metadata folders
+        if p.is_file():
+            parts = p.parts
+            if any(part.startswith(".") and part not in (".cursor", ".claude", ".agents", ".grok", ".codex") for part in parts):
+                continue
+            if "node_modules" in parts or "__pycache__" in parts or ".venv" in parts or "venv" in parts:
+                continue
+            try:
+                safe_file = validate_safe_path(p, base_dir=root_dir)
+                collected_files.append(safe_file)
+            except Exception:
+                continue
 
     report.total_files_scanned = len(collected_files)
 

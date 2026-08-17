@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.2.0] - 2026-08-17
+
+### Reliability & Production Hardening
+- **9-Point Self-Test Diagnostic (`claudemark selftest`)**: Added comprehensive release-gate diagnostic testing imports, detectors, Unicode forensics, rewrite engine, agent registry, atomic writes, security scanner, SARIF compliance, and zero-egress isolation (`python claudemark.py selftest`).
+- **CLI Escaped Unicode Support (`--text-escaped`)**: Added `--text-escaped` across `analyze`, `unicode`, `rewrite`, and `normalize` commands, enabling robust handling of literal `\u200b` escape sequences in Windows Command Prompt (`cmd.exe`).
+- **Standardized REST API Contracts (`claudemark/server.py`)**: Unified response and error envelopes with `ok`, `schema_version="1.0"`, `tool`, `result`/`error`, and unique `request_id`; added `GET /ready`, `GET /version`, and `GET /favicon.ico` (204 No Content).
+- **Resilient AI Agent Dispatch (`claudemark/agent/`)**: Flexible payload support in `/api/agent/exec` and CLI `agent exec` with allowlist tool validation and fallback quote parsing.
+- **Forensic False-Positive Elimination (`claudemark/provenance/documents.py`, `audit.py`)**: Strict differentiation between binary embedded C2PA manifests (`CONFIRMED`) and textual documentation references (`INFORMATIONAL`), eliminating false alarms on repository markdown files.
+- **Calibrated Scientific Benchmarks (`claudemark/core/benchmarks.py`, `claudemark/watermark/experimental.py`)**: Multi-sentence representative human/AI corpora for reproducible statistical benchmarking and threshold calibration sweeps with non-empty dataset validation.
+- **Path Operations Hardening (`claudemark/provenance/base.py`, `audit.py`)**: Refactored `safe_atomic_write_bytes` and `audit_directory` to operate strictly on validated `Path` objects, eliminating CodeQL taint warnings.
+
+---
+
 ## [2.1.1] - 2026-08-17
 
 ### Security & Hardening

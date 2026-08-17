@@ -53,7 +53,7 @@ def inspect_document(file_path: Path) -> ProvenanceInspectionReport:
 
     suspicious = False
     ai_metadata = False
-    c2pa = b"c2pa" in data.lower() or b"urn:c2pa:" in data.lower()
+    has_c2pa = False
     unicode_anomalies = 0
     details: dict[str, Any] = {}
 
@@ -99,25 +99,30 @@ def inspect_document(file_path: Path) -> ProvenanceInspectionReport:
                 
                 if any(k in meta_content for k in _AI_PROMPT_KEYWORDS):
                     ai_metadata = True
-                suspicious = has_doc_props or ai_metadata
-                details = {"zip_entries": names[:15], "has_doc_props": has_doc_props, "has_ai_metadata": ai_metadata}
+                
+                # Check for structured C2PA assertion manifests in package
+                has_c2pa = any("c2pa" in n.lower() or "jumbf" in n.lower() for n in names)
+                suspicious = has_doc_props or ai_metadata or has_c2pa
+                details = {"zip_entries": names[:15], "has_doc_props": has_doc_props, "has_ai_metadata": ai_metadata, "has_c2pa": has_c2pa}
         except Exception as ex:
             details = {"error": str(ex)}
 
     elif suffix == ".pdf":
         has_xmp = b"<x:xmpmeta" in data or b"/Metadata" in data
         has_info = b"/Info" in data
+        # PDF C2PA requires actual dictionary / stream marker or JUMBF box
+        has_c2pa = b"/c2pa" in data or b"c2pa.manifest" in data or b"c2pa_manifest" in data
         if any(k.encode("utf-8") in data.lower() for k in _AI_PROMPT_KEYWORDS):
             ai_metadata = True
-        suspicious = has_xmp or has_info or ai_metadata or c2pa
-        details = {"has_xmp": has_xmp, "has_info": has_info, "has_c2pa": c2pa, "has_ai_metadata": ai_metadata}
+        suspicious = has_xmp or has_info or ai_metadata or has_c2pa
+        details = {"has_xmp": has_xmp, "has_info": has_info, "has_c2pa": has_c2pa, "has_ai_metadata": ai_metadata}
 
     return ProvenanceInspectionReport(
         file_path=str(file_path),
         file_name=file_path.name,
         file_format=suffix.lstrip("."),
         file_size_bytes=size,
-        has_c2pa=c2pa,
+        has_c2pa=has_c2pa,
         has_ai_metadata=ai_metadata,
         suspicious=suspicious,
         unicode_anomalies=unicode_anomalies,
