@@ -147,10 +147,12 @@ def audit_directory(
     collected_files: list[Path] = []
 
     for root, _, files in os.walk(str(root_dir)):
+        safe_root = validate_safe_path(root, base_dir=root_dir)
         for f_name in files:
             if len(collected_files) >= max_files:
                 break
-            collected_files.append(Path(root) / f_name)
+            safe_file = validate_safe_path(safe_root / f_name, base_dir=root_dir)
+            collected_files.append(safe_file)
         if len(collected_files) >= max_files:
             break
 
