@@ -86,15 +86,16 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
         return False
 
     def _get_cors_origin(self) -> str:
-        """Resolve allowed CORS origin from configuration or request."""
+        """Resolve allowed CORS origin from configuration without reflecting untrusted headers."""
         allowed = os.environ.get("CLAUDEMARK_CORS_ORIGIN", "*").strip()
-        if allowed == "*":
+        if not allowed or allowed == "*":
             return "*"
-        # Check against allowed comma-separated list if specific origins configured
-        req_origin = self.headers.get("Origin", "").strip()
-        allowed_list = [o.strip() for o in allowed.split(",") if o.strip()]
-        if req_origin in allowed_list:
-            return req_origin
+        # Whitelist check: strictly return an exact entry from the pre-configured server whitelist
+        req_origin = re.sub(r"[\r\n\x00-\x1f]", "", self.headers.get("Origin", "")).strip()
+        allowed_list = [re.sub(r"[\r\n\x00-\x1f]", "", o.strip()) for o in allowed.split(",") if o.strip()]
+        for trusted_origin in allowed_list:
+            if req_origin == trusted_origin:
+                return trusted_origin
         return allowed_list[0] if allowed_list else "*"
 
     def _send_json(self, status: int, data: Any) -> None:

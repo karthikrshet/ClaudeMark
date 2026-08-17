@@ -114,12 +114,17 @@ AGENT_TOOLS_MANIFEST: list[dict[str, Any]] = [
 ]
 
 
-def _resolve_agent_path(raw_path: str) -> Path:
-    """Safely sanitize agent path against directory traversal."""
+def _resolve_agent_path(raw_path: str, base_dir: Path | str | None = None) -> Path:
+    """Safely sanitize agent path against directory traversal.
+
+    Constrains all agent-supplied paths to the current workspace root
+    or the directory configured in CLAUDEMARK_WORKSPACE_ROOT.
+    """
     cleaned = str(raw_path or "").strip()
     if not cleaned or "\x00" in cleaned:
         raise ValueError("Invalid agent path argument")
-    return validate_safe_path(cleaned)
+    target_base = Path(base_dir or os.environ.get("CLAUDEMARK_WORKSPACE_ROOT") or Path.cwd()).resolve()
+    return validate_safe_path(cleaned, base_dir=target_base)
 
 
 def execute_agent_tool(tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
