@@ -143,7 +143,9 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
             from .agent.tools import AGENT_TOOLS_MANIFEST
             self._send_json(200, {
                 "ready": True,
+                "status": "ready",
                 "version": __version__,
+                "detectors": detector_registry.list_detectors(),
                 "detectors_count": len(detector_registry.list_detectors()),
                 "tools_count": len(AGENT_TOOLS_MANIFEST),
                 "zero_egress": True,
@@ -276,6 +278,15 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
             alg = str(req_data.get("algorithm", "claude"))
             thresh = req_data.get("threshold", None)
 
+            if len(text) > MAX_TEXT_LENGTH:
+                self._send_json(413, {
+                    "ok": False,
+                    "schema_version": "1.0",
+                    "request_id": req_id,
+                    "error": {"code": "PAYLOAD_TOO_LARGE", "message": f"Text length ({len(text)} chars) exceeds {MAX_TEXT_LENGTH} limit"},
+                })
+                return
+
             if alg not in detector_registry.list_detectors():
                 self._send_json(400, {
                     "ok": False,
@@ -320,6 +331,14 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
         if path == "/api/unicode/analyze":
             from .core.unicode_forensics import analyze_unicode_forensics
             text = str(req_data.get("text", ""))
+            if len(text) > MAX_TEXT_LENGTH:
+                self._send_json(413, {
+                    "ok": False,
+                    "schema_version": "1.0",
+                    "request_id": req_id,
+                    "error": {"code": "PAYLOAD_TOO_LARGE", "message": f"Text length exceeds {MAX_TEXT_LENGTH} limit"},
+                })
+                return
             rep = analyze_unicode_forensics(text)
             self._send_json(200, {
                 "ok": True,
@@ -334,6 +353,14 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
         if path == "/api/unicode/visualize":
             from .core.unicode_forensics import visualize_unicode_markers
             text = str(req_data.get("text", ""))
+            if len(text) > MAX_TEXT_LENGTH:
+                self._send_json(413, {
+                    "ok": False,
+                    "schema_version": "1.0",
+                    "request_id": req_id,
+                    "error": {"code": "PAYLOAD_TOO_LARGE", "message": f"Text length exceeds {MAX_TEXT_LENGTH} limit"},
+                })
+                return
             self._send_json(200, {
                 "ok": True,
                 "schema_version": "1.0",
@@ -347,6 +374,14 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
         if path == "/api/rewrite":
             from .rewrite.paraphrase import disrupt_watermark
             text = str(req_data.get("text", ""))
+            if len(text) > MAX_TEXT_LENGTH:
+                self._send_json(413, {
+                    "ok": False,
+                    "schema_version": "1.0",
+                    "request_id": req_id,
+                    "error": {"code": "PAYLOAD_TOO_LARGE", "message": f"Text length exceeds {MAX_TEXT_LENGTH} limit"},
+                })
+                return
             strat = str(req_data.get("strategy", "synonym_cadence"))
             alg = str(req_data.get("algorithm", "claude"))
             res = disrupt_watermark(text, strategy=strat, detector_name=alg)
@@ -407,7 +442,7 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
                     "ok": False,
                     "schema_version": "1.0",
                     "request_id": req_id,
-                    "error": {"code": "INVALID_TOOL", "message": f"Unknown tool: '{tool_name}'. Allowed tools: {valid_tools}"},
+                    "error": {"code": "UNKNOWN_TOOL", "message": f"Unknown tool: '{tool_name}'. Allowed tools: {valid_tools}"},
                 })
                 return
 

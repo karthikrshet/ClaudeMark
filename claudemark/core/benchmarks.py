@@ -42,6 +42,50 @@ BENCHMARK_SAMPLES = [
         "is_watermarked": False,
         "has_unicode": False,
     },
+    {
+        "text": (
+            "To configure your SSH daemon on Ubuntu, edit /etc/ssh/sshd_config and change the default "
+            "port from 22 to your desired custom port. Make sure your firewall allows incoming traffic on "
+            "that port before restarting the service with systemctl restart sshd, otherwise you will get locked out."
+        ),
+        "is_watermarked": False,
+        "has_unicode": False,
+    },
+    {
+        "text": (
+            "Whisk together two cups of all-purpose flour, one teaspoon of baking soda, and a pinch of salt. "
+            "In a separate bowl, cream together softened unsalted butter and brown sugar until light and fluffy. "
+            "Gradually fold in chocolate chips and bake at 350 degrees Fahrenheit for ten to twelve minutes."
+        ),
+        "is_watermarked": False,
+        "has_unicode": False,
+    },
+    {
+        "text": (
+            "Black holes are regions of spacetime where gravity is so strong that nothing, not even light, "
+            "can escape from inside their event horizon. General relativity predicts that a sufficiently compact "
+            "mass can deform spacetime to form a singularity at its center."
+        ),
+        "is_watermarked": False,
+        "has_unicode": False,
+    },
+    {
+        "text": (
+            "Neither party shall be held liable for any failure or delay in performance under this Agreement "
+            "to the extent such failure or delay is caused by conditions beyond its reasonable control, including "
+            "acts of God, natural disasters, strikes, civil disturbances, or government regulations."
+        ),
+        "is_watermarked": False,
+        "has_unicode": False,
+    },
+    {
+        "text": (
+            "The old clock tower chimed midnight across the quiet square. Fog rolled in from the river, "
+            "cloaking the cobblestone streets in a thick grey veil as the lone night watchman locked the iron gate."
+        ),
+        "is_watermarked": False,
+        "has_unicode": False,
+    },
 
     # Synthetic / Watermarked corpus with statistical transition constraints (Ground Truth: WATERMARKED)
     {
@@ -68,6 +112,33 @@ BENCHMARK_SAMPLES = [
             "Moreover, systematic evaluations demonstrate that iterative parameter optimization "
             "yields substantial efficiencies. As a result, adopting standardized analytical protocols "
             "facilitates seamless knowledge transfer and maximizes overarching operational effectiveness."
+        ),
+        "is_watermarked": True,
+        "has_unicode": False,
+    },
+    {
+        "text": (
+            "Additionally, this comprehensive analysis illustrates that the delicate orchestration "
+            "of multifaceted heuristics substantially reinforces systemic resilience. Crucially, aligning "
+            "these intricate paradigms provides actionable clarity across multidimensional operational contexts."
+        ),
+        "is_watermarked": True,
+        "has_unicode": False,
+    },
+    {
+        "text": (
+            "Consequently, it is essential to emphasize that proactive monitoring protocols empower "
+            "enterprises to mitigate latent vulnerabilities. By establishing robust verification conduits, "
+            "organizations achieve unprecedented precision in managing distributed workflow pipelines."
+        ),
+        "is_watermarked": True,
+        "has_unicode": False,
+    },
+    {
+        "text": (
+            "In summary, modern analytical paradigms facilitate transformative breakthroughs across "
+            "diverse technological ecosystems. Furthermore, synthesising these disparate insights ensures "
+            "sustainable and resilient architectural outcomes for contemporary stakeholders."
         ),
         "is_watermarked": True,
         "has_unicode": False,
@@ -110,9 +181,11 @@ class BenchmarkMetric:
 
 @dataclass
 class BenchmarkSuiteResult:
-    version: str = "2.1.0"
+    version: str = "2.2.0"
     benchmark_dataset_version: str = BENCHMARK_DATASET_VERSION
     benchmark_dataset_hash: str = BENCHMARK_DATASET_HASH
+    human_samples_count: int = len([s for s in BENCHMARK_SAMPLES if not s["is_watermarked"] and not s["has_unicode"]])
+    synthetic_samples_count: int = len([s for s in BENCHMARK_SAMPLES if s["is_watermarked"]])
     total_samples: int = len(BENCHMARK_SAMPLES)
     metrics: list[BenchmarkMetric] = field(default_factory=list)
 
@@ -172,8 +245,14 @@ def run_benchmark_suite(reproduce: bool = True) -> BenchmarkSuiteResult:
 
 
 def print_benchmark_table(result: BenchmarkSuiteResult) -> None:
-    """Pretty-print benchmark results table."""
-    print("ClaudeMark Reproducible Benchmark Suite Matrix (v2.2.0)")
+    """Pretty-print benchmark results table with dataset provenance metadata."""
+    print(f"ClaudeMark Reproducible Benchmark Suite Matrix (v{result.version})")
+    print("═" * 75)
+    print(f"Dataset Version:   {result.benchmark_dataset_version}")
+    print(f"Dataset SHA-256:   {result.benchmark_dataset_hash}")
+    print(f"Human Samples:     {result.human_samples_count}")
+    print(f"Synthetic Samples: {result.synthetic_samples_count}")
+    print(f"Total Samples:     {result.total_samples}")
     print("═" * 75)
     print(f"{'Detector':<18} | {'Accuracy':<10} | {'Precision':<10} | {'Recall':<10} | {'F1-Score':<10}")
     print("─" * 75)

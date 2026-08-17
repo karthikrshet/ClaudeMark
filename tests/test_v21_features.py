@@ -18,7 +18,7 @@ def test_doctor_diagnostics():
 
 def test_benchmark_suite_reproducible():
     result = run_benchmark_suite(reproduce=True)
-    assert result.version == "2.1.0"
+    assert result.version == "2.2.0"
     assert len(result.metrics) >= 4
     for m in result.metrics:
         assert m.accuracy >= 0.0

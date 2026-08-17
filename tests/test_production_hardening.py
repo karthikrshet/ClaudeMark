@@ -298,3 +298,59 @@ class TestSelfTestAndV22Hardenings:
         assert len(sweep.evaluations) > 0
         assert sweep.evaluations[0].f1_score > 0.0
 
+    def test_server_ready_and_version_endpoints(self, running_claudemark_server: str) -> None:
+        import urllib.request
+        # Test /ready
+        with urllib.request.urlopen(f"{running_claudemark_server}/ready") as resp:
+            assert resp.status == 200
+            data = json.loads(resp.read().decode("utf-8"))
+            assert data["status"] == "ready"
+            assert data["version"] == "2.2.0"
+            assert "detectors" in data
+
+        # Test /version
+        with urllib.request.urlopen(f"{running_claudemark_server}/version") as resp:
+            assert resp.status == 200
+            data = json.loads(resp.read().decode("utf-8"))
+            assert data["version"] == "2.2.0"
+            assert data["zero_egress"] is True
+
+        # Test /favicon.ico (204 No Content)
+        with urllib.request.urlopen(f"{running_claudemark_server}/favicon.ico") as resp:
+            assert resp.status == 204
+
+    def test_server_unknown_tool_error(self, running_claudemark_server: str) -> None:
+        import urllib.request
+        import urllib.error
+        payload = json.dumps({"tool": "non_existent_tool", "args": {}}).encode("utf-8")
+        req = urllib.request.Request(
+            f"{running_claudemark_server}/api/agent/exec",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with pytest.raises(urllib.error.HTTPError) as exc:
+            urllib.request.urlopen(req)
+        assert exc.value.code == 400
+        data = json.loads(exc.value.read().decode("utf-8"))
+        assert data["ok"] is False
+        assert data["error"]["code"] == "UNKNOWN_TOOL"
+
+    def test_server_invalid_threshold_error(self, running_claudemark_server: str) -> None:
+        import urllib.request
+        import urllib.error
+        payload = json.dumps({"text": "Sample text", "threshold": 2.5}).encode("utf-8")
+        req = urllib.request.Request(
+            f"{running_claudemark_server}/api/analyze",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with pytest.raises(urllib.error.HTTPError) as exc:
+            urllib.request.urlopen(req)
+        assert exc.value.code == 400
+        data = json.loads(exc.value.read().decode("utf-8"))
+        assert data["ok"] is False
+        assert data["error"]["code"] == "INVALID_ARGUMENT"
+
+
