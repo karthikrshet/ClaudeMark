@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClaudeMarkForensicsSchema",
+  "version": "2.0.0",
+  "tools": [
+    {
+      "name": "analyze_watermark",
+      "description": "Analyze text for statistical AI watermarks and return structured hypotheses and scores.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Text content to analyze"
+          },
+          "algorithm": {
+            "type": "string",
+            "enum": [
+              "claude",
+              "kirchenbauer",
+              "synthid",
+              "generic"
+            ],
+            "default": "claude"
+          },
+          "threshold": {
+            "type": "number",
+            "description": "Decision threshold (0.0 to 1.0)"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      }
+    },
+    {
+      "name": "analyze_unicode",
+      "description": "Scan text for zero-width characters, BiDi overrides, NBSP, and Unicode steganography.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Text content to inspect"
+          },
+          "visualize": {
+            "type": "boolean",
+            "default": true,
+            "description": "Include human-readable visualization"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      }
+    },
+    {
+      "name": "inspect_provenance",
+      "description": "Inspect a file (PDF, DOCX, PNG, JPEG, SVG, etc.) for C2PA, EXIF, XMP, and AI footprints.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file_path": {
+            "type": "string",
+            "description": "Path to the target file"
+          }
+        },
+        "required": [
+          "file_path"
+        ]
+      }
+    },
+    {
+      "name": "clean_file",
+      "description": "Sanitize and strip metadata/watermarks from a document or image container.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "input_path": {
+            "type": "string",
+            "description": "Path to input file"
+          },
+          "output_path": {
+            "type": "string",
+            "description": "Path to destination file"
+          }
+        },
+        "required": [
+          "input_path"
+        ]
+      }
+    },
+    {
+      "name": "disrupt_watermark",
+      "description": "Execute best-effort local statistical watermark disruption and text rebalancing.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Text to transform"
+          },
+          "strategy": {
+            "type": "string",
+            "enum": [
+              "synonym_cadence",
+              "cadence_only"
+            ],
+            "default": "synonym_cadence"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      }
+    },
+    {
+      "name": "scan_security",
+      "description": "Defensively scan files for zip bombs, malicious PDF actions, macros, and path traversal.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file_path": {
+            "type": "string",
+            "description": "Path to target file"
+          }
+        },
+        "required": [
+          "file_path"
+        ]
+      }
+    },
+    {
+      "name": "audit_directory",
+      "description": "Recursively audit directory tree for watermarks, steganography, C2PA, and security risks.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "default": ".",
+            "description": "Target directory path"
+          },
+          "max_files": {
+            "type": "integer",
+            "default": 1000,
+            "description": "Max files to audit"
+          }
+        }
+      }
+    },
+    {
+      "name": "get_capabilities",
+      "description": "List all active detectors, supported document/image formats, and system tools.",
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ]
+}
