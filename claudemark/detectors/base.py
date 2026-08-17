@@ -41,8 +41,14 @@ class DetectionResult:
         "Statistical properties can vary across genres, domains, and human authors.",
     ])
 
+    @property
+    def is_watermarked(self) -> bool:
+        return self.signal_score >= self.threshold
+
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        d = asdict(self)
+        d["is_watermarked"] = self.is_watermarked
+        return d
 
 
 class WatermarkDetector(ABC):
