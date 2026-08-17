@@ -23,6 +23,7 @@ import argparse
 import base64
 import json
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -35,6 +36,7 @@ from urllib.parse import urlparse
 from . import __version__, analyze_text, compute_forensic_diff, normalize_text
 from .core.normalizer import NormalizationOptions
 from .detectors.registry import detector_registry
+from .provenance.base import validate_safe_path
 from .provenance.batch import clean_single_file, inspect_single_file
 from .web.app import get_static_asset
 
@@ -49,7 +51,9 @@ _ALLOWED_EXTENSIONS = {
 
 def _get_safe_extension(raw_name: str) -> str:
     """Extract and validate file extension against strict whitelist."""
-    ext = Path(raw_name).suffix.lower()
+    base_name = os.path.basename(str(raw_name or "input.bin"))
+    clean_name = re.sub(r"[^a-zA-Z0-9_.-]", "", base_name)
+    ext = Path(clean_name).suffix.lower()
     return ext if ext in _ALLOWED_EXTENSIONS else ".bin"
 
 
@@ -300,7 +304,8 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
                 return
 
             with tempfile.TemporaryDirectory() as td:
-                tp = Path(td) / f"upload_payload{safe_ext}"
+                safe_td = validate_safe_path(td)
+                tp = validate_safe_path(safe_td / f"upload_payload{safe_ext}", base_dir=safe_td)
                 tp.write_bytes(raw_bytes)
                 rep = inspect_single_file(tp)
                 self._send_json(200, {"ok": True, "suspicious": rep.suspicious, "report": rep.to_dict()})
@@ -318,8 +323,9 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
                 return
 
             with tempfile.TemporaryDirectory() as td:
-                in_p = Path(td) / f"input_payload{safe_ext}"
-                out_p = Path(td) / f"cleaned_payload{safe_ext}"
+                safe_td = validate_safe_path(td)
+                in_p = validate_safe_path(safe_td / f"input_payload{safe_ext}", base_dir=safe_td)
+                out_p = validate_safe_path(safe_td / f"cleaned_payload{safe_ext}", base_dir=safe_td)
                 in_p.write_bytes(raw_bytes)
                 rep = clean_single_file(in_p, out_p)
                 cleaned_bytes = out_p.read_bytes() if out_p.is_file() else raw_bytes

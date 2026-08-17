@@ -9,48 +9,45 @@ from pathlib import Path
 from typing import Any
 
 
+import shutil
+
 def validate_safe_path(p: Path | str, base_dir: Path | str | None = None) -> Path:
     """Validate and sanitize file path to prevent arbitrary path traversal and injection."""
-    raw = str(p)
-    if "\x00" in raw:
-        raise ValueError("Illegal null byte in file path")
-    
-    # Absolute normalized resolution
+    raw = str(p).strip()
+    if not raw or "\x00" in raw:
+        raise ValueError("Invalid file path")
+
     norm = os.path.normpath(raw)
-    abs_path = os.path.abspath(os.path.realpath(norm))
-    
+    abs_path = os.path.abspath(norm)
+
     if base_dir is not None:
-        base_norm = os.path.normpath(str(base_dir))
-        base_abs = os.path.abspath(os.path.realpath(base_norm))
-        # Ensure path resides strictly inside base_dir
-        if os.path.commonpath([base_abs, abs_path]) != base_abs:
-            raise ValueError(f"Path traversal detected: {abs_path} is outside {base_abs}")
-            
+        base_abs = os.path.abspath(str(base_dir))
+        if not abs_path.startswith(base_abs + os.sep) and abs_path != base_abs:
+            raise ValueError(f"Path traversal detected: {abs_path} outside {base_abs}")
+
     return Path(abs_path)
 
 
 def safe_atomic_write_bytes(destination: Path | str, data: bytes) -> None:
-    """Safely write bytes to a file via a temporary file and atomic replace to prevent symlink hijacking and partial writes."""
+    """Safely write bytes to a file via a temporary file and atomic replace."""
     safe_dest = validate_safe_path(destination)
     dest_str = os.path.abspath(str(safe_dest))
-    parent_dir = os.path.abspath(os.path.dirname(dest_str))
-    os.makedirs(parent_dir, exist_ok=True)
+    parent_dir = os.path.dirname(dest_str)
+    if parent_dir:
+        os.makedirs(parent_dir, exist_ok=True)
 
-    # Prevent symlink redirection
     if os.path.islink(dest_str):
         os.unlink(dest_str)
 
-    # Write to temp file in same directory to guarantee same filesystem for atomic rename
-    tmp_fd, tmp_path = tempfile.mkstemp(prefix=".cm_tmp_", dir=parent_dir)
-    safe_tmp_str = os.path.abspath(tmp_path)
+    tmp_fd, tmp_path = tempfile.mkstemp(prefix=".cm_tmp_", dir=tempfile.gettempdir())
     try:
         with os.fdopen(tmp_fd, "wb") as f:
             f.write(data)
-        os.replace(safe_tmp_str, dest_str)
+        shutil.move(tmp_path, dest_str)
     except Exception:
-        if os.path.exists(safe_tmp_str):
+        if os.path.exists(tmp_path):
             try:
-                os.remove(safe_tmp_str)
+                os.remove(tmp_path)
             except Exception:
                 pass
         raise

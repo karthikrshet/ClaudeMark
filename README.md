@@ -250,17 +250,20 @@ Optional external system dependencies (automatically used when present on host o
 
 ---
 
-## CI/CD, GitHub Actions & Pre-Commit Integration
+## CI/CD, GitHub Actions & SARIF 2.1.0 Code Scanning
 
-### Official GitHub Action
-Integrate ClaudeMark directly into your GitHub CI/CD workflows to scan Pull Requests and prevent unstripped tracking manifests or invisible Unicode markers:
+### Official GitHub Action & SARIF Code Scanning
+Integrate ClaudeMark directly into your GitHub CI/CD workflows. Findings are converted to OASIS SARIF v2.1.0 and rendered in GitHub's native Security & Code Scanning alerts:
 
 ```yaml
-- name: Audit Repository with ClaudeMark
-  uses: karthikrshet/ClaudeMark@v2.0.0
+- name: Audit Repository with ClaudeMark (SARIF Output)
+  run: |
+    python claudemark.py audit . --format sarif -o claudemark.sarif --fail-on confirmed
+
+- name: Upload Results to GitHub Security Tab
+  uses: github/codeql-action/upload-sarif@v3
   with:
-    path: '.'
-    fail-on-suspicious: 'true'
+    sarif_file: claudemark.sarif
 ```
 
 ### Pre-Commit Hook
@@ -269,7 +272,7 @@ Prevent invisible steganography and container tracking from ever entering your G
 ```yaml
 repos:
   - repo: https://github.com/karthikrshet/ClaudeMark
-    rev: v2.0.0
+    rev: v2.1.0
     hooks:
       - id: claudemark-clean-unicode
       - id: claudemark-audit
@@ -277,9 +280,21 @@ repos:
 
 ---
 
-## Cryptographic Forensic Audit Certificate Export
+## Environment Diagnostics (`doctor`) & Benchmarks
 
-Generate verifiable, print-ready, standalone HTML audit certificates with SHA-256 integrity digests, timestamp signatures, and risk evaluations:
+```bash
+# Diagnose host runtime, system binaries, decoders, and security status
+python claudemark.py doctor
+
+# Run reproducible scientific benchmark matrix
+python claudemark.py benchmark --reproduce
+```
+
+---
+
+## Cryptographically Anchored Forensic Audit Certificate Export
+
+Generate verifiable, print-ready, standalone HTML audit certificates with SHA-256 byte integrity digests, timestamp signatures, and risk evaluations:
 
 ```bash
 # Generate standalone HTML forensic certificate for a document
