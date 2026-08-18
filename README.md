@@ -1,4 +1,4 @@
-<div align="center">
+ <div align="center">
 
 <p align="center">
   <img src="assets/logo.svg" width="96" height="96" alt="ClaudeMark Logo" />
