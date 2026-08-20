@@ -86,3 +86,23 @@ def test_claudemark_server_clean_endpoint(running_claudemark_server):
         assert data["ok"] is True
         cleaned_text = base64.b64decode(data["cleaned"]).decode("utf-8")
         assert cleaned_text == "Hidden steganography"
+
+
+def test_claudemark_server_documented_file_api_aliases(running_claudemark_server):
+    sample_text = "Hidden\u200b steganography".encode("utf-8")
+    payload = json.dumps({
+        "file": base64.b64encode(sample_text).decode("ascii"),
+        "name": "sample.txt",
+    }).encode("utf-8")
+
+    for endpoint in ("/api/inspect", "/api/clean", "/api/security/scan"):
+        req = urllib.request.Request(
+            f"{running_claudemark_server}{endpoint}",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req) as resp:
+            assert resp.status == 200
+            data = json.loads(resp.read().decode("utf-8"))
+            assert data["ok"] is True
