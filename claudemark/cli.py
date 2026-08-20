@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import sys
 from pathlib import Path
@@ -38,6 +39,19 @@ from .reports.terminal import format_terminal_diff, format_terminal_report
 from .watermark.experimental import run_parameter_sweep
 
 MAX_FILE_SIZE_BYTES = MAX_INPUT_BYTES
+
+
+def _workspace_path(raw_path: str) -> Path:
+    """Resolve a CLI path inside the configured workspace boundary.
+
+    CLI paths can name nested files, but may never escape the current working
+    directory (or ``CLAUDEMARK_WORKSPACE_ROOT`` when configured).
+    """
+    root = os.path.realpath(os.environ.get("CLAUDEMARK_WORKSPACE_ROOT", os.getcwd()))
+    candidate = os.path.realpath(os.path.normpath(os.path.join(root, raw_path)))
+    if candidate != root and not candidate.startswith(root + os.sep):
+        raise ValueError("Path traversal detected: target is outside the workspace root")
+    return Path(candidate)
 
 
 def _read_input(
@@ -108,7 +122,7 @@ def cmd_analyze(args: argparse.Namespace) -> int:
 
 
 def cmd_inspect(args: argparse.Namespace) -> int:
-    target = Path(args.target).resolve()
+    target = _workspace_path(args.target)
     if not target.exists():
         sys.stderr.write(f"Error: Path does not exist: {target}\n")
         return 1
@@ -159,7 +173,7 @@ def cmd_inspect(args: argparse.Namespace) -> int:
 
 
 def cmd_clean(args: argparse.Namespace) -> int:
-    target = Path(args.target).resolve()
+    target = _workspace_path(args.target)
     if not target.exists():
         sys.stderr.write(f"Error: Path does not exist: {target}\n")
         return 1
@@ -338,7 +352,7 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
 
 def cmd_security(args: argparse.Namespace) -> int:
     from .security.scanner import scan_file_security
-    target = Path(args.target).resolve()
+    target = _workspace_path(args.target)
     rep = scan_file_security(target)
     if args.json:
         print(json.dumps(rep.to_dict(), indent=2))
@@ -392,7 +406,7 @@ def cmd_agent(args: argparse.Namespace) -> int:
 
 
 def cmd_c2pa(args: argparse.Namespace) -> int:
-    target = Path(args.target).resolve()
+    target = _workspace_path(args.target)
     from .provenance.c2pa import inspect_c2pa_bytes, inspect_c2pa_tool
 
     if not target.is_file():
@@ -717,7 +731,7 @@ def cmd_audit(args: argparse.Namespace) -> int:
     from .provenance.sarif import convert_audit_report_to_sarif, export_sarif
 
     raw_target = args.target_path if args.subcommand_or_target in ("dir", "directory") and args.target_path else args.subcommand_or_target
-    target = Path(raw_target or ".").resolve()
+    target = _workspace_path(raw_target or ".")
     rep = audit_directory(target, max_files=args.max_files)
 
     if args.sarif:
