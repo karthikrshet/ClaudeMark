@@ -96,6 +96,7 @@ def batch_clean(
     output_dir: Path | None = None,
     recursive: bool = True,
     in_place: bool = False,
+    dry_run: bool = False,
 ) -> BatchProcessSummary:
     """Clean all supported files in a directory tree."""
     dir_path = Path(dir_path).resolve()
@@ -130,6 +131,12 @@ def batch_clean(
                     dest = out_root / rel
                     dest.parent.mkdir(parents=True, exist_ok=True)
 
+                if dry_run:
+                    reports.append({
+                        "input_path": str(item), "output_path": str(dest), "success": True,
+                        "dry_run": True, "actions_performed": ["Would clean metadata and provenance markers"],
+                    })
+                    continue
                 try:
                     res = clean_single_file(item, dest)
                     if res.success:

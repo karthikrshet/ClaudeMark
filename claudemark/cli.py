@@ -186,11 +186,11 @@ def cmd_clean(args: argparse.Namespace) -> int:
         if not args.output and not args.in_place:
             sys.stderr.write("Error: For batch directory cleaning, specify -o <output_dir> or --in-place.\n")
             return 1
-        res = batch_clean(target, output_dir=Path(args.output) if args.output else None, in_place=args.in_place)
+        res = batch_clean(target, output_dir=Path(args.output) if args.output else None, in_place=args.in_place, dry_run=args.dry_run)
         if args.json:
             _write_output(json.dumps(res.to_dict(), indent=2), None)
         else:
-            print("ClaudeMark Batch Cleaning Summary")
+            print("ClaudeMark Batch Cleaning Preview" if args.dry_run else "ClaudeMark Batch Cleaning Summary")
             print("═" * 60)
             print(f"Directory:           {res.directory}")
             print(f"Cleaned Successfully:{res.cleaned_count} files")
@@ -235,6 +235,18 @@ def cmd_normalize(args: argparse.Namespace) -> int:
             print("---")
         sys.stdout.write(res.normalized_text)
     return 0
+
+
+def cmd_evidence(args: argparse.Namespace) -> int:
+    from .provenance.evidence import create_evidence_bundle, verify_evidence_bundle
+    if args.verify:
+        result = verify_evidence_bundle(args.target)
+    else:
+        target = Path(args.target).resolve()
+        report = inspect_single_file(target).to_dict()
+        result = create_evidence_bundle(target, report, args.output, include_original=args.include_original)
+    print(json.dumps(result, indent=2))
+    return 0 if result.get("valid", True) else 1
 
 
 def cmd_report(args: argparse.Namespace) -> int:
@@ -547,10 +559,19 @@ def build_parser() -> argparse.ArgumentParser:
     p_cln.add_argument("target", help="File or directory path to clean")
     p_cln.add_argument("--output", "-o", default=None, help="Output destination file or directory")
     p_cln.add_argument("--in-place", action="store_true", help="Overwrite files in-place during batch cleaning")
+    p_cln.add_argument("--dry-run", action="store_true", help="Preview batch cleaning destinations without changing files")
     p_cln.add_argument("--keep-non-ai", action="store_true", help="Preserve standard non-AI metadata")
     p_cln.add_argument("--remove-pixel", choices=["ctrlregen", "diffusion"], default=None, help="Optional pixel removal backend")
     p_cln.add_argument("--json", action="store_true", help="Output JSON cleaning report")
     p_cln.set_defaults(func=cmd_clean)
+
+    # evidence
+    p_evidence = subparsers.add_parser("evidence", help="Create or verify a tamper-evident forensic evidence bundle")
+    p_evidence.add_argument("target", help="Target file to bundle, or existing evidence ZIP with --verify")
+    p_evidence.add_argument("--output", "-o", default="claudemark-evidence.zip", help="Evidence ZIP output path")
+    p_evidence.add_argument("--include-original", action="store_true", help="Include the original target bytes in the bundle")
+    p_evidence.add_argument("--verify", action="store_true", help="Verify an existing evidence bundle")
+    p_evidence.set_defaults(func=cmd_evidence)
 
     # analyze
     p_analyze = subparsers.add_parser("analyze", help="Analyze text for watermark signals & Unicode forensics")

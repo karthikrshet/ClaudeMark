@@ -13,6 +13,7 @@ from .batch import (
     inspect_single_file,
 )
 from .c2pa import inspect_c2pa_bytes, inspect_c2pa_tool
+from .evidence import create_evidence_bundle, verify_evidence_bundle
 from .documents import clean_document, inspect_document
 from .exif_xmp import inspect_exif_xmp_bytes
 from .images import clean_image_file, inspect_image_file
@@ -28,6 +29,8 @@ __all__ = [
     "batch_clean",
     "inspect_c2pa_bytes",
     "inspect_c2pa_tool",
+    "create_evidence_bundle",
+    "verify_evidence_bundle",
     "inspect_exif_xmp_bytes",
     "inspect_document",
     "clean_document",
