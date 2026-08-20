@@ -44,9 +44,11 @@ from .security.scanner import scan_file_security
 from .web.app import get_static_asset
 
 
-_ALLOWED_EXTENSIONS = {
-    ".txt", ".text", ".md", ".markdown", ".html", ".htm",
-    ".pdf", ".docx", ".odt", ".png", ".jpg", ".jpeg", ".webp", ".svg", ".avif", ".heic"
+_SAFE_EXTENSION_MAP = {
+    ".txt": ".txt", ".text": ".text", ".md": ".md", ".markdown": ".markdown",
+    ".html": ".html", ".htm": ".htm", ".pdf": ".pdf", ".docx": ".docx",
+    ".odt": ".odt", ".png": ".png", ".jpg": ".jpg", ".jpeg": ".jpeg",
+    ".webp": ".webp", ".svg": ".svg", ".avif": ".avif", ".heic": ".heic",
 }
 
 
@@ -55,7 +57,8 @@ def _get_safe_extension(raw_name: str) -> str:
     base_name = os.path.basename(str(raw_name or "input.bin"))
     clean_name = re.sub(r"[^a-zA-Z0-9_.-]", "", base_name)
     ext = Path(clean_name).suffix.lower()
-    return ext if ext in _ALLOWED_EXTENSIONS else ".bin"
+    # Return only a literal selected from the static map, never a request value.
+    return _SAFE_EXTENSION_MAP.get(ext, ".bin")
 
 
 class ClaudeMarkHandler(BaseHTTPRequestHandler):

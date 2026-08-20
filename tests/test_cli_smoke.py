@@ -1,7 +1,16 @@
 """Smoke tests verifying every CLI command documented in the README."""
 
 import json
+import pytest
 from claudemark.cli import main
+
+
+@pytest.mark.parametrize("path", ["../outside.txt", "..\\outside.txt"])
+def test_cli_workspace_path_rejects_traversal(path):
+    from claudemark.cli import _workspace_path
+
+    with pytest.raises(ValueError, match="outside the workspace root"):
+        _workspace_path(path)
 
 
 def test_cli_analyze_command(capsys):
@@ -68,18 +77,20 @@ def test_cli_agent_exec(capsys):
     assert data["zero_width_count"] == 1
 
 
-def test_cli_security_scan(tmp_path, capsys):
+def test_cli_security_scan(tmp_path, capsys, monkeypatch):
     f = tmp_path / "safe.txt"
     f.write_text("Safe file content", encoding="utf-8")
+    monkeypatch.setenv("CLAUDEMARK_WORKSPACE_ROOT", str(tmp_path))
     ret = main(["security", str(f)])
     assert ret == 0
     captured = capsys.readouterr()
     assert "Threat Level: NONE" in captured.out
 
 
-def test_cli_c2pa_inspect(tmp_path, capsys):
+def test_cli_c2pa_inspect(tmp_path, capsys, monkeypatch):
     f = tmp_path / "dummy.png"
     f.write_bytes(b"\x89PNG\r\n\x1a\n")
+    monkeypatch.setenv("CLAUDEMARK_WORKSPACE_ROOT", str(tmp_path))
     ret = main(["c2pa", str(f)])
     assert ret == 0
     captured = capsys.readouterr()
