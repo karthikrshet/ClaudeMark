@@ -24,7 +24,13 @@ jobs:
         run: python -m pip install -r requirements-dev.txt
 
       - name: Run Test Suite
-        run: python -m pytest tests/
+        run: python -m pytest -q tests/
+
+      - name: Compile package
+        run: python -m compileall -q claudemark
+
+      - name: Run reproducible benchmark
+        run: python claudemark.py benchmark --json
 
       - name: Smoke Test CLI Commands
         run: |

@@ -156,8 +156,15 @@ python claudemark.py inspect document.pdf
 python claudemark.py clean document.pdf -o clean.pdf
 python claudemark.py clean photo.png -o clean_photo.png
 python claudemark.py clean image.avif -o clean_image.avif
-python claudemark.py clean video.mp4 -o clean_video.mp4
-python claudemark.py clean audio.mp3 -o clean_audio.mp3
+    python claudemark.py clean video.mp4 -o clean_video.mp4
+    python claudemark.py clean audio.mp3 -o clean_audio.mp3
+
+    # Preview a directory-cleaning operation before writing any output
+    python claudemark.py clean ./uploads -o ./sanitized --dry-run
+
+    # Create a portable tamper-evident evidence bundle (original excluded by default)
+    python claudemark.py evidence document.pdf -o evidence.zip
+    python claudemark.py evidence evidence.zip --verify
 
 # 5. Concurrent Multi-Threaded Directory Tree Audit
 python claudemark.py audit .                         # Fast parallel multi-threaded scan
@@ -225,6 +232,18 @@ curl -s -X POST http://127.0.0.1:8765/api/analyze \
 ```
 
 Set `CLAUDEMARK_SERVER_API_KEY` in your environment to enforce `Authorization: Bearer <key>` on all operational endpoints.
+
+### MCP stdio server
+
+ClaudeMark also exposes its local agent tools through the Model Context Protocol over stdio. It makes no network connections:
+
+    claudemark-mcp
+
+Register that command with an MCP-compatible client. It supports `initialize`, `tools/list`, and `tools/call`; tool arguments and results use the same schemas as `claudemark agent`.
+
+### Evidence bundles
+
+`claudemark evidence` writes a ZIP containing a canonical JSON report and SHA-256 manifest. `--include-original` is opt-in to avoid accidentally sharing the target content. `--verify` confirms the report hash and, when present, the embedded original hash. An evidence bundle proves the integrity of what it contains; it is not a cryptographic signature or a claim of authorship.
 
 ---
 

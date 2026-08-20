@@ -62,6 +62,7 @@ def inspect_c2pa_bytes(data: bytes, asset_name: str = "Asset") -> dict[str, Any]
             "status": "ABSENT",
             "method": "byte_scan",
             "indicators": [],
+            "verification": {"cryptographically_verified": False, "reason": "No C2PA manifest detected"},
             "provenance_tree": tree.to_dict(),
         }
 
@@ -131,6 +132,10 @@ def inspect_c2pa_bytes(data: bytes, asset_name: str = "Asset") -> dict[str, Any]
         "software_agent": software_agent,
         "actions": actions,
         "assertions": assertions,
+        "verification": {
+            "cryptographically_verified": False,
+            "reason": "A C2PA indicator was found, but byte scanning cannot verify signatures, certificates, or claim integrity.",
+        },
         "provenance_tree": tree.to_dict(),
     }
 
@@ -156,12 +161,14 @@ def inspect_c2pa_tool(file_path: Path) -> dict[str, Any] | None:
                 "status": "VALID",
                 "method": "c2patool",
                 "manifest_data": parsed,
+                "verification": {"cryptographically_verified": True, "reason": "c2patool completed verification successfully"},
             }
         return {
             "has_c2pa": True,
             "status": "INVALID",
             "method": "c2patool",
             "error": proc.stderr.strip() or "Manifest verification failed",
+            "verification": {"cryptographically_verified": False, "reason": "c2patool reported a verification failure"},
         }
     except Exception as ex:
         return {"has_c2pa": False, "status": "UNVERIFIED", "error": str(ex)}

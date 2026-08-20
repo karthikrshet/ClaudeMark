@@ -58,6 +58,7 @@ dev = [
 
 [project.scripts]
 claudemark = "claudemark.cli:main"
+claudemark-mcp = "claudemark.mcp_server:serve_stdio"
 
 [project.urls]
 Homepage = "https://github.com/karthikrshet/ClaudeMark"
