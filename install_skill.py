@@ -2,6 +2,7 @@
 """Universal cross-platform installer for ClaudeMark agent skill into Antigravity, Cursor, Claude Desktop, Grok, and Codex."""
 
 import argparse
+import filecmp
 import os
 import shutil
 import sys
@@ -16,12 +17,29 @@ TARGET_MAP = {
 }
 
 
+def _trees_match(source: Path, destination: Path) -> bool:
+    """Return whether two skill trees have the same relative files and bytes."""
+    if not source.is_dir() or not destination.is_dir():
+        return False
+    source_files = {p.relative_to(source) for p in source.rglob("*") if p.is_file()}
+    destination_files = {p.relative_to(destination) for p in destination.rglob("*") if p.is_file()}
+    if source_files != destination_files:
+        return False
+    return all(filecmp.cmp(source / rel, destination / rel, shallow=False) for rel in source_files)
+
+
 def install_single_target(skill_src: Path, dest_dir: Path, force: bool = False, dry_run: bool = False) -> bool:
     if dry_run:
         print(f"[Dry Run] Would stage skill from {skill_src.name} to {dest_dir}")
         return True
 
     if dest_dir.exists():
+        if skill_src.resolve() == dest_dir.resolve():
+            print(f"Skill source and destination are the same: {dest_dir} (skipping)")
+            return True
+        if _trees_match(skill_src, dest_dir):
+            print(f"Skill already up to date at: {dest_dir} (skipping)")
+            return True
         if not force:
             print(f"Skill already present at: {dest_dir} (skipping, use --force to overwrite)")
             return True

@@ -40,3 +40,9 @@ def test_agent_tool_execution_disrupt():
     })
     assert res["success"] is True
     assert "rewritten_text" in res
+
+
+def test_agent_tool_execution_security_scan():
+    res = execute_agent_tool("scan_security", {"file_path": "README.md"})
+    assert res["file_name"] == "README.md"
+    assert "is_safe" in res

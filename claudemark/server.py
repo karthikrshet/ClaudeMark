@@ -40,6 +40,7 @@ from .core.normalizer import NormalizationOptions
 from .detectors.registry import detector_registry
 from .provenance.base import validate_safe_path
 from .provenance.batch import clean_single_file, inspect_single_file
+from .security.scanner import scan_file_security
 from .web.app import get_static_asset
 
 
@@ -63,6 +64,11 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
     server_version = f"ClaudeMark/{__version__}"
     timeout = 15
 
+    def setup(self) -> None:
+        """Apply a socket read timeout so slow clients cannot hold worker threads indefinitely."""
+        super().setup()
+        self.connection.settimeout(self.timeout)
+
     def log_message(self, format: str, *args: Any) -> None:
         """Safely log messages without crashing on closed/invalid stderr handles."""
         try:
@@ -85,10 +91,12 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
             return token == required_key
         return False
 
-    def _get_cors_origin(self) -> str:
+    def _get_cors_origin(self) -> str | None:
         """Resolve allowed CORS origin from configuration without reflecting untrusted headers."""
-        allowed = os.environ.get("CLAUDEMARK_CORS_ORIGIN", "*").strip()
-        if not allowed or allowed == "*":
+        allowed = os.environ.get("CLAUDEMARK_CORS_ORIGIN", "").strip()
+        if not allowed:
+            return None
+        if allowed == "*":
             return "*"
         # Whitelist check: strictly return an exact entry from the pre-configured server whitelist
         req_origin = re.sub(r"[\r\n\x00-\x1f]", "", self.headers.get("Origin", "")).strip()
@@ -96,14 +104,20 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
         for trusted_origin in allowed_list:
             if req_origin == trusted_origin:
                 return trusted_origin
-        return allowed_list[0] if allowed_list else "*"
+        return allowed_list[0] if allowed_list else None
+
+    def _send_cors_header(self) -> None:
+        """Send CORS only when the operator configured an explicit policy."""
+        origin = self._get_cors_origin()
+        if origin:
+            self.send_header("Access-Control-Allow-Origin", origin)
 
     def _send_json(self, status: int, data: Any) -> None:
         payload = json.dumps(data, indent=2).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(payload)))
-        self.send_header("Access-Control-Allow-Origin", self._get_cors_origin())
+        self._send_cors_header()
         self.end_headers()
         self.wfile.write(payload)
         self.wfile.flush()
@@ -113,14 +127,14 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(raw)))
-        self.send_header("Access-Control-Allow-Origin", self._get_cors_origin())
+        self._send_cors_header()
         self.end_headers()
         self.wfile.write(raw)
         self.wfile.flush()
 
     def do_OPTIONS(self) -> None:
         self.send_response(HTTPStatus.NO_CONTENT)
-        self.send_header("Access-Control-Allow-Origin", self._get_cors_origin())
+        self._send_cors_header()
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
         self.end_headers()
@@ -229,8 +243,19 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         path = parsed.path.rstrip("/")
 
-        length = int(self.headers.get("Content-Length", 0))
         req_id = f"req-{uuid.uuid4().hex[:12]}"
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            if length < 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            self._send_json(400, {
+                "ok": False,
+                "schema_version": "1.0",
+                "request_id": req_id,
+                "error": {"code": "INVALID_CONTENT_LENGTH", "message": "Content-Length must be a non-negative integer"},
+            })
+            return
 
         if not self._check_auth(path):
             if length > 0:
@@ -270,6 +295,14 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
                 "schema_version": "1.0",
                 "request_id": req_id,
                 "error": {"code": "MALFORMED_JSON", "message": "Invalid JSON body payload"},
+            })
+            return
+        if not isinstance(req_data, dict):
+            self._send_json(400, {
+                "ok": False,
+                "schema_version": "1.0",
+                "request_id": req_id,
+                "error": {"code": "INVALID_ARGUMENT", "message": "JSON request body must be an object"},
             })
             return
 
@@ -492,13 +525,13 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
             })
             return
 
-        if path == "/inspect":
+        if path in ("/inspect", "/api/inspect"):
             file_b64 = req_data.get("file", "")
             raw_name = req_data.get("name", "input.bin")
             safe_ext = _get_safe_extension(raw_name)
 
             try:
-                raw_bytes = base64.b64decode(file_b64)
+                raw_bytes = base64.b64decode(file_b64, validate=True)
             except Exception:
                 self._send_json(400, {"error": "Invalid base64 payload in 'file'"})
                 return
@@ -511,13 +544,13 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
                 self._send_json(200, {"ok": True, "suspicious": rep.suspicious, "report": rep.to_dict()})
             return
 
-        if path == "/clean":
+        if path in ("/clean", "/api/clean"):
             file_b64 = req_data.get("file", "")
             raw_name = req_data.get("name", "input.bin")
             safe_ext = _get_safe_extension(raw_name)
 
             try:
-                raw_bytes = base64.b64decode(file_b64)
+                raw_bytes = base64.b64decode(file_b64, validate=True)
             except Exception:
                 self._send_json(400, {"error": "Invalid base64 payload in 'file'"})
                 return
@@ -537,6 +570,24 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
                     "cleaned_size_bytes": len(cleaned_bytes),
                     "report": rep.to_dict(),
                 })
+            return
+
+        if path == "/api/security/scan":
+            file_b64 = req_data.get("file", "")
+            raw_name = req_data.get("name", "input.bin")
+            safe_ext = _get_safe_extension(raw_name)
+            try:
+                raw_bytes = base64.b64decode(file_b64, validate=True)
+            except Exception:
+                self._send_json(400, {"error": "Invalid base64 payload in 'file'"})
+                return
+
+            with tempfile.TemporaryDirectory() as td:
+                safe_td = validate_safe_path(td)
+                file_path = validate_safe_path(safe_td / f"security_scan{safe_ext}", base_dir=safe_td)
+                file_path.write_bytes(raw_bytes)
+                report = scan_file_security(file_path)
+                self._send_json(200, {"ok": True, "report": report.to_dict()})
             return
 
         self._send_json(404, {"error": f"Endpoint not found: {path}"})

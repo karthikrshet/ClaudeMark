@@ -55,3 +55,17 @@ def test_server_bearer_auth(running_claudemark_server, monkeypatch):
         assert resp.status == 200
         data = json.loads(resp.read().decode("utf-8"))
         assert "watermark_analysis" in data
+
+
+def test_server_cors_is_opt_in(running_claudemark_server, monkeypatch):
+    req = urllib.request.Request(f"{running_claudemark_server}/health")
+    with urllib.request.urlopen(req) as resp:
+        assert resp.headers.get("Access-Control-Allow-Origin") is None
+
+    monkeypatch.setenv("CLAUDEMARK_CORS_ORIGIN", "https://console.example")
+    req = urllib.request.Request(
+        f"{running_claudemark_server}/health",
+        headers={"Origin": "https://console.example"},
+    )
+    with urllib.request.urlopen(req) as resp:
+        assert resp.headers["Access-Control-Allow-Origin"] == "https://console.example"
