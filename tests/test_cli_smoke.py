@@ -1,15 +1,16 @@
 """Smoke tests verifying every CLI command documented in the README."""
 
 import json
+import pytest
 from claudemark.cli import main
 
 
-def test_cli_workspace_path_rejects_traversal():
+@pytest.mark.parametrize("path", ["../outside.txt", "..\\outside.txt"])
+def test_cli_workspace_path_rejects_traversal(path):
     from claudemark.cli import _workspace_path
-    import pytest
 
     with pytest.raises(ValueError, match="outside the workspace root"):
-        _workspace_path("..\\outside.txt")
+        _workspace_path(path)
 
 
 def test_cli_analyze_command(capsys):

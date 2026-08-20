@@ -48,7 +48,10 @@ def _workspace_path(raw_path: str) -> Path:
     directory (or ``CLAUDEMARK_WORKSPACE_ROOT`` when configured).
     """
     root = os.path.realpath(os.environ.get("CLAUDEMARK_WORKSPACE_ROOT", os.getcwd()))
-    candidate = os.path.realpath(os.path.normpath(os.path.join(root, raw_path)))
+    # Treat both slash styles as separators on every OS. This prevents a path
+    # accepted on Linux from becoming traversal when later consumed on Windows.
+    normalized_input = str(raw_path).replace("\\", os.sep).replace("/", os.sep)
+    candidate = os.path.realpath(os.path.normpath(os.path.join(root, normalized_input)))
     if candidate != root and not candidate.startswith(root + os.sep):
         raise ValueError("Path traversal detected: target is outside the workspace root")
     return Path(candidate)
