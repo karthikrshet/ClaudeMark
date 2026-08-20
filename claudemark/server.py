@@ -91,10 +91,12 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
             return token == required_key
         return False
 
-    def _get_cors_origin(self) -> str:
+    def _get_cors_origin(self) -> str | None:
         """Resolve allowed CORS origin from configuration without reflecting untrusted headers."""
-        allowed = os.environ.get("CLAUDEMARK_CORS_ORIGIN", "*").strip()
-        if not allowed or allowed == "*":
+        allowed = os.environ.get("CLAUDEMARK_CORS_ORIGIN", "").strip()
+        if not allowed:
+            return None
+        if allowed == "*":
             return "*"
         # Whitelist check: strictly return an exact entry from the pre-configured server whitelist
         req_origin = re.sub(r"[\r\n\x00-\x1f]", "", self.headers.get("Origin", "")).strip()
@@ -102,14 +104,20 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
         for trusted_origin in allowed_list:
             if req_origin == trusted_origin:
                 return trusted_origin
-        return allowed_list[0] if allowed_list else "*"
+        return allowed_list[0] if allowed_list else None
+
+    def _send_cors_header(self) -> None:
+        """Send CORS only when the operator configured an explicit policy."""
+        origin = self._get_cors_origin()
+        if origin:
+            self.send_header("Access-Control-Allow-Origin", origin)
 
     def _send_json(self, status: int, data: Any) -> None:
         payload = json.dumps(data, indent=2).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(payload)))
-        self.send_header("Access-Control-Allow-Origin", self._get_cors_origin())
+        self._send_cors_header()
         self.end_headers()
         self.wfile.write(payload)
         self.wfile.flush()
@@ -119,14 +127,14 @@ class ClaudeMarkHandler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(raw)))
-        self.send_header("Access-Control-Allow-Origin", self._get_cors_origin())
+        self._send_cors_header()
         self.end_headers()
         self.wfile.write(raw)
         self.wfile.flush()
 
     def do_OPTIONS(self) -> None:
         self.send_response(HTTPStatus.NO_CONTENT)
-        self.send_header("Access-Control-Allow-Origin", self._get_cors_origin())
+        self._send_cors_header()
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
         self.end_headers()
