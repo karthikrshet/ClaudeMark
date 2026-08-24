@@ -16,7 +16,7 @@
 [![Forks](https://img.shields.io/github/forks/karthikrshet/ClaudeMark)](https://github.com/karthikrshet/ClaudeMark/forks)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform: 100% Offline](https://img.shields.io/badge/Network-Zero--Egress-success.svg)](SECURITY.md)
-
+<a href="https://www.producthunt.com/products/claudemark?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-claudemark" target="_blank" rel="noopener noreferrer"><img alt="ClaudeMark - AI watermark &amp; provenance forensics toolkit | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1231217&amp;theme=light&amp;t=1787600395308"></a>
 </div>
 
 ClaudeMark is a local-first, zero-egress forensics platform engineered to detect, visualize, disrupt, and sanitize AI watermarks, steganographic carriers, and container provenance from files and text you own.
