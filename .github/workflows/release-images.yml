@@ -28,7 +28,7 @@ jobs:
           TAG="${{ github.ref_name }}"
           echo "tags=ghcr.io/karthikrshet/claudemark:${TAG},ghcr.io/karthikrshet/claudemark:latest" >> "$GITHUB_OUTPUT"
           echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile
